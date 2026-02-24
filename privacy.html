@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Privacy Policy - Dots and Boxes Classroom Edition</title>
+    <link rel="stylesheet" href="styles/main.css">
+    <link rel="stylesheet" href="styles/theme.css">
+    <link href="https://fonts.googleapis.com/css2?family=Patrick+Hand:wght@400&family=Schoolbell&family=Fredoka:wght@300;400;500;600&family=Comic+Neue:wght@300;400;700&display=swap" rel="stylesheet">
+    <style>
+        /* Base theme styles */
+        :root {
+            --theme-bg: #0d3818;
+            --theme-text: #ffffff;
+            --theme-font: 'Schoolbell', cursive;
+            --accent-color: #c8860d;
+            --accent-hover: #b8790b;
+        }
+        
+        html {
+            scroll-behavior: smooth;
+            overflow-y: auto;
+        }
+        
+        body {
+            font-family: var(--theme-font), 'Fredoka', 'Comic Neue', cursive;
+            background: var(--theme-bg);
+            background: linear-gradient(135deg, 
+                var(--theme-bg) 0%,    
+                #154220 25%,   
+                #0f3a1a 50%,   
+                #134021 75%,   
+                var(--theme-bg) 100%   
+            );
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            overflow-y: auto;
+            scroll-behavior: smooth;
+            color: var(--theme-text);
+        }
+        
+        .privacy-container {
+            max-width: 900px;
+            margin: 20px auto;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+            padding: 40px;
+            backdrop-filter: blur(15px);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            overflow-y: auto;
+            max-height: none;
+            color: #2c3e50;
+        }
+        
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+            .privacy-container {
+                padding: 25px 20px;
+                margin: 10px auto;
+                border-radius: 16px;
+                max-width: 95%;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .privacy-container {
+                padding: 20px 15px;
+                margin: 5px auto;
+                border-radius: 12px;
+            }
+        }
+        
+        .privacy-container h1 {
+            font-family: var(--theme-font);
+            font-size: 2.8rem;
+            margin-bottom: 25px;
+            text-align: center;
+            color: #2c3e50;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+            letter-spacing: 1px;
+            line-height: 1.2;
+        }
+        
+        @media (max-width: 768px) {
+            .privacy-container h1 {
+                font-size: 2.2rem;
+                margin-bottom: 20px;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .privacy-container h1 {
+                font-size: 1.8rem;
+                margin-bottom: 15px;
+            }
+        }
+        
+        .privacy-container h2 {
+            font-family: var(--theme-font);
+            font-size: 1.6rem;
+            margin-top: 35px;
+            margin-bottom: 18px;
+            color: #34495e;
+            border-bottom: 3px solid var(--accent-color);
+            padding-bottom: 8px;
+            font-weight: 500;
+        }
+        
+        @media (max-width: 768px) {
+            .privacy-container h2 {
+                font-size: 1.4rem;
+                margin-top: 25px;
+                margin-bottom: 15px;
+            }
+        }
+        
+        .privacy-container h3 {
+            font-family: var(--theme-font);
+            font-size: 1.3rem;
+            margin-top: 25px;
+            margin-bottom: 12px;
+            color: var(--accent-hover);
+            font-weight: 500;
+        }
+        
+        @media (max-width: 768px) {
+            .privacy-container h3 {
+                font-size: 1.2rem;
+                margin-top: 20px;
+                margin-bottom: 10px;
+            }
+        }
+        
+        .privacy-container p, .privacy-container li {
+            font-family: 'Comic Neue', cursive;
+            font-size: 1.15rem;
+            line-height: 1.7;
+            color: #2c3e50;
+            margin-bottom: 15px;
+            font-weight: 400;
+        }
+        
+        @media (max-width: 768px) {
+            .privacy-container p, .privacy-container li {
+                font-size: 1.1rem;
+                line-height: 1.6;
+                margin-bottom: 12px;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .privacy-container p, .privacy-container li {
+                font-size: 1rem;
+                line-height: 1.5;
+                margin-bottom: 10px;
+            }
+        }
+        
+        .privacy-container ul {
+            margin-left: 25px;
+            margin-bottom: 25px;
+        }
+        
+        .privacy-container li {
+            margin-bottom: 8px;
+        }
+        
+        .privacy-container a {
+            color: var(--accent-color);
+            text-decoration: none;
+            font-weight: 600;
+            transition: color 0.3s ease;
+        }
+        
+        .privacy-container a:hover {
+            color: var(--accent-hover);
+            text-decoration: underline;
+        }
+        
+        .back-btn {
+            display: inline-block;
+            background: linear-gradient(135deg, var(--accent-color), var(--accent-hover));
+            color: white;
+            padding: 15px 30px;
+            border-radius: 30px;
+            text-decoration: none;
+            font-family: var(--theme-font);
+            font-weight: 600;
+            margin: 30px auto 20px auto;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            font-size: 1.2rem;
+            box-shadow: 0 4px 15px rgba(200, 134, 13, 0.3);
+            text-align: center;
+            display: block;
+            width: fit-content;
+        }
+        
+        .back-btn:hover {
+            background: linear-gradient(135deg, var(--accent-hover), #a06a09);
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(200, 134, 13, 0.4);
+        }
+        
+        @media (max-width: 768px) {
+            .back-btn {
+                padding: 12px 25px;
+                font-size: 1.1rem;
+                margin: 25px auto 15px auto;
+            }
+        }
+        
+        .highlight {
+            background: linear-gradient(135deg, rgba(200, 134, 13, 0.15), rgba(200, 134, 13, 0.05));
+            padding: 20px;
+            border-radius: 12px;
+            border-left: 5px solid var(--accent-color);
+            margin: 25px 0;
+            box-shadow: 0 2px 10px rgba(200, 134, 13, 0.15);
+        }
+        
+        @media (max-width: 768px) {
+            .highlight {
+                padding: 15px;
+                margin: 20px 0;
+            }
+        }
+        
+        .highlight p {
+            margin-bottom: 0;
+            font-weight: 500;
+        }
+        
+        strong {
+            color: #2c3e50;
+            font-weight: 600;
+        }
+        
+        /* Ensure scrolling works properly */
+        * {
+            scrollbar-width: thin;
+            scrollbar-color: var(--accent-color) rgba(255, 255, 255, 0.1);
+        }
+        
+        *::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        *::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+        }
+        
+        *::-webkit-scrollbar-thumb {
+            background: var(--accent-color);
+            border-radius: 4px;
+        }
+        
+        *::-webkit-scrollbar-thumb:hover {
+            background: var(--accent-hover);
+        }
+        
+        /* Theme Detection */
+        body.theme-whiteboard {
+            --theme-bg: #ffffff;
+            --theme-text: #333333;
+            --theme-font: 'Patrick Hand', cursive;
+            --accent-color: #2d5a87;
+            --accent-hover: #245373;
+            background: #f5f5f5;
+            background-image: 
+                linear-gradient(rgba(0,0,0,0.02) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0,0,0,0.02) 1px, transparent 1px);
+            background-size: 20px 20px;
+        }
+        
+        /* Auto-detect theme from body class */
+        body.theme-greenboard,
+        body:not(.theme-whiteboard) {
+            --theme-bg: #0d3818;
+            --theme-text: #ffffff;
+            --theme-font: 'Schoolbell', cursive;
+            --accent-color: #c8860d;
+            --accent-hover: #b8790b;
+        }
+    </style>
+</head>
+<body>
+    <div class="privacy-container">
+        <h1>🔒 Privacy Policy</h1>
+        <p><strong>Effective Date:</strong> August 3, 2025</p>
+        
+        <div class="highlight">
+            <p><strong>🎯 Our Commitment:</strong> Dots and Boxes Classroom Edition is designed with privacy in mind. We collect minimal data and prioritize the safety of our users, especially students.</p>
+        </div>
+
+        <h2>📊 Information We Collect</h2>
+        <h3>When You Sign In with Google:</h3>
+        <ul>
+            <li><strong>Display Name:</strong> To show your name to other players</li>
+            <li><strong>Email Address:</strong> For account identification (not displayed publicly)</li>
+            <li><strong>Profile Picture:</strong> To display your avatar in games (optional)</li>
+        </ul>
+
+        <h3>Game Data:</h3>
+        <ul>
+            <li><strong>Game Sessions:</strong> Moves, scores, and chat messages during gameplay</li>
+            <li><strong>Room Codes:</strong> Temporary identifiers for multiplayer games</li>
+            <li><strong>Connection Status:</strong> To manage multiplayer sessions</li>
+        </ul>
+
+        <h2>🛡️ How We Protect Your Information</h2>
+        <ul>
+            <li><strong>Secure Firebase:</strong> All data is stored on Google's secure Firebase platform</li>
+            <li><strong>Temporary Storage:</strong> Game sessions are automatically deleted after completion</li>
+            <li><strong>No Permanent Records:</strong> We don't keep long-term records of your gameplay</li>
+            <li><strong>COPPA Compliant:</strong> Safe for educational use with students under 13</li>
+        </ul>
+
+        <h2>🤝 How We Use Your Information</h2>
+        <ul>
+            <li>Enable multiplayer gaming experiences</li>
+            <li>Display your name and avatar to other players</li>
+            <li>Facilitate in-game chat during sessions</li>
+            <li>Improve game performance and fix bugs</li>
+        </ul>
+
+        <h2>📤 Information Sharing</h2>
+        <p><strong>We do NOT:</strong></p>
+        <ul>
+            <li>Sell your personal information to third parties</li>
+            <li>Share your data with advertisers</li>
+            <li>Store unnecessary personal information</li>
+            <li>Track your activity outside the game</li>
+        </ul>
+
+        <h2>🗑️ Data Retention</h2>
+        <ul>
+            <li><strong>Game Sessions:</strong> Deleted within 24 hours of completion</li>
+            <li><strong>Chat Messages:</strong> Removed when game sessions end</li>
+            <li><strong>Account Info:</strong> Only while you're signed in to Google</li>
+            <li><strong>Room Data:</strong> Automatically cleaned up after games</li>
+        </ul>
+
+        <h2>🎓 Educational Use</h2>
+        <p>This game is designed for classroom environments. Teachers and educators should:</p>
+        <ul>
+            <li>Review this privacy policy before classroom use</li>
+            <li>Ensure students understand the multiplayer features</li>
+            <li>Monitor chat during gameplay if needed</li>
+            <li>Contact us with any concerns about educational use</li>
+        </ul>
+
+        <h2>👨‍👩‍👧‍👦 Parental Rights</h2>
+        <p>Parents have the right to:</p>
+        <ul>
+            <li>Review what information their child provides</li>
+            <li>Request deletion of their child's information</li>
+            <li>Refuse further collection of their child's information</li>
+        </ul>
+
+        <h2>📱 Your Rights</h2>
+        <p>You can:</p>
+        <ul>
+            <li>Sign out at any time to stop data collection</li>
+            <li>Play locally without providing any personal information</li>
+            <li>Contact us to request data deletion</li>
+            <li>Ask questions about our privacy practices</li>
+        </ul>
+
+        <h2>📧 Contact Us</h2>
+        <p>If you have questions about this privacy policy or our data practices:</p>
+        <ul>
+            <li><strong>Email:</strong> privacy@dotsandboxes.education</li>
+            <li><strong>Subject:</strong> "Privacy Policy Question"</li>
+        </ul>
+
+        <h2>🔄 Policy Updates</h2>
+        <p>We may update this policy occasionally. When we do:</p>
+        <ul>
+            <li>We'll update the "Effective Date" above</li>
+            <li>Significant changes will be highlighted in the game</li>
+            <li>Continued use means acceptance of updates</li>
+        </ul>
+
+        <div class="highlight">
+            <p><strong>🌟 Remember:</strong> Your privacy matters to us! We've designed this game to be safe, fun, and educational while respecting your personal information.</p>
+        </div>
+
+        <a href="index.html" class="back-btn">🏠 Back to Game</a>
+    </div>
+    
+    <script>
+        // Auto-detect theme from localStorage or default to greenboard
+        document.addEventListener('DOMContentLoaded', function() {
+            const savedTheme = localStorage.getItem('selectedTheme') || 'greenboard';
+            document.body.classList.add(`theme-${savedTheme}`);
+        });
+    </script>
+</body>
+</html>

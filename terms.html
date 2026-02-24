@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Terms of Service - Dots and Boxes Classroom Edition</title>
+    <link rel="stylesheet" href="styles/main.css">
+    <link rel="stylesheet" href="styles/theme.css">
+    <link href="https://fonts.googleapis.com/css2?family=Patrick+Hand:wght@400&family=Schoolbell&family=Fredoka:wght@300;400;500;600&family=Comic+Neue:wght@300;400;700&display=swap" rel="stylesheet">
+    <style>
+        /* Base theme styles */
+        :root {
+            --theme-bg: #0d3818;
+            --theme-text: #ffffff;
+            --theme-font: 'Schoolbell', cursive;
+            --accent-color: #e74c3c;
+            --accent-hover: #c0392b;
+        }
+        
+        html {
+            scroll-behavior: smooth;
+            overflow-y: auto;
+        }
+        
+        body {
+            font-family: var(--theme-font), 'Fredoka', 'Comic Neue', cursive;
+            background: var(--theme-bg);
+            background: linear-gradient(135deg, 
+                var(--theme-bg) 0%,    
+                #154220 25%,   
+                #0f3a1a 50%,   
+                #134021 75%,   
+                var(--theme-bg) 100%   
+            );
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            overflow-y: auto;
+            scroll-behavior: smooth;
+            color: var(--theme-text);
+        }
+        
+        .terms-container {
+            max-width: 900px;
+            margin: 20px auto;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+            padding: 40px;
+            backdrop-filter: blur(15px);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            overflow-y: auto;
+            max-height: none;
+            color: #2c3e50;
+        }
+        
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+            .terms-container {
+                padding: 25px 20px;
+                margin: 10px auto;
+                border-radius: 16px;
+                max-width: 95%;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .terms-container {
+                padding: 20px 15px;
+                margin: 5px auto;
+                border-radius: 12px;
+            }
+        }
+        
+        .terms-container h1 {
+            font-family: var(--theme-font);
+            font-size: 2.8rem;
+            margin-bottom: 25px;
+            text-align: center;
+            color: #2c3e50;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+            letter-spacing: 1px;
+            line-height: 1.2;
+        }
+        
+        @media (max-width: 768px) {
+            .terms-container h1 {
+                font-size: 2.2rem;
+                margin-bottom: 20px;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .terms-container h1 {
+                font-size: 1.8rem;
+                margin-bottom: 15px;
+            }
+        }
+        
+        .terms-container h2 {
+            font-family: var(--theme-font);
+            font-size: 1.6rem;
+            margin-top: 35px;
+            margin-bottom: 18px;
+            color: #34495e;
+            border-bottom: 3px solid var(--accent-color);
+            padding-bottom: 8px;
+            font-weight: 500;
+        }
+        
+        @media (max-width: 768px) {
+            .terms-container h2 {
+                font-size: 1.4rem;
+                margin-top: 25px;
+                margin-bottom: 15px;
+            }
+        }
+        
+        .terms-container h3 {
+            font-family: var(--theme-font);
+            font-size: 1.3rem;
+            margin-top: 25px;
+            margin-bottom: 12px;
+            color: var(--accent-hover);
+            font-weight: 500;
+        }
+        
+        @media (max-width: 768px) {
+            .terms-container h3 {
+                font-size: 1.2rem;
+                margin-top: 20px;
+                margin-bottom: 10px;
+            }
+        }
+        
+        .terms-container p, .terms-container li {
+            font-family: 'Comic Neue', cursive;
+            font-size: 1.15rem;
+            line-height: 1.7;
+            color: #2c3e50;
+            margin-bottom: 15px;
+            font-weight: 400;
+        }
+        
+        @media (max-width: 768px) {
+            .terms-container p, .terms-container li {
+                font-size: 1.1rem;
+                line-height: 1.6;
+                margin-bottom: 12px;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .terms-container p, .terms-container li {
+                font-size: 1rem;
+                line-height: 1.5;
+                margin-bottom: 10px;
+            }
+        }
+        
+        .terms-container ul {
+            margin-left: 25px;
+            margin-bottom: 25px;
+        }
+        
+        .terms-container li {
+            margin-bottom: 8px;
+        }
+        
+        .terms-container a {
+            color: var(--accent-color);
+            text-decoration: none;
+            font-weight: 600;
+            transition: color 0.3s ease;
+        }
+        
+        .terms-container a:hover {
+            color: var(--accent-hover);
+            text-decoration: underline;
+        }
+        
+        .back-btn {
+            display: inline-block;
+            background: linear-gradient(135deg, var(--accent-color), var(--accent-hover));
+            color: white;
+            padding: 15px 30px;
+            border-radius: 30px;
+            text-decoration: none;
+            font-family: var(--theme-font);
+            font-weight: 600;
+            margin: 30px auto 20px auto;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            font-size: 1.2rem;
+            box-shadow: 0 4px 15px rgba(231, 76, 60, 0.3);
+            text-align: center;
+            display: block;
+            width: fit-content;
+        }
+        
+        .back-btn:hover {
+            background: linear-gradient(135deg, var(--accent-hover), #a93226);
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(231, 76, 60, 0.4);
+        }
+        
+        @media (max-width: 768px) {
+            .back-btn {
+                padding: 12px 25px;
+                font-size: 1.1rem;
+                margin: 25px auto 15px auto;
+            }
+        }
+        
+        .highlight {
+            background: linear-gradient(135deg, rgba(231, 76, 60, 0.15), rgba(231, 76, 60, 0.05));
+            padding: 20px;
+            border-radius: 12px;
+            border-left: 5px solid var(--accent-color);
+            margin: 25px 0;
+            box-shadow: 0 2px 10px rgba(231, 76, 60, 0.15);
+        }
+        
+        @media (max-width: 768px) {
+            .highlight {
+                padding: 15px;
+                margin: 20px 0;
+            }
+        }
+        
+        .highlight p {
+            margin-bottom: 0;
+            font-weight: 500;
+        }
+        
+        .warning {
+            background: linear-gradient(135deg, rgba(243, 156, 18, 0.1), rgba(243, 156, 18, 0.05));
+            padding: 20px;
+            border-radius: 12px;
+            border-left: 5px solid #f39c12;
+            margin: 25px 0;
+            box-shadow: 0 2px 10px rgba(243, 156, 18, 0.1);
+        }
+        
+        .warning p {
+            margin-bottom: 0;
+            font-weight: 500;
+            color: #d68910;
+        }
+        
+        strong {
+            color: #2c3e50;
+            font-weight: 600;
+        }
+        
+        /* Ensure scrolling works properly */
+        * {
+            scrollbar-width: thin;
+            scrollbar-color: var(--accent-color) rgba(255, 255, 255, 0.1);
+        }
+        
+        *::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        *::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+        }
+        
+        *::-webkit-scrollbar-thumb {
+            background: var(--accent-color);
+            border-radius: 4px;
+        }
+        
+        *::-webkit-scrollbar-thumb:hover {
+            background: var(--accent-hover);
+        }
+        
+        /* Theme Detection */
+        body.theme-whiteboard {
+            --theme-bg: #ffffff;
+            --theme-text: #333333;
+            --theme-font: 'Patrick Hand', cursive;
+            --accent-color: #2d5a87;
+            --accent-hover: #245373;
+            background: #f5f5f5;
+            background-image: 
+                linear-gradient(rgba(0,0,0,0.02) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0,0,0,0.02) 1px, transparent 1px);
+            background-size: 20px 20px;
+        }
+        
+        /* Auto-detect theme from body class */
+        body.theme-greenboard,
+        body:not(.theme-whiteboard) {
+            --theme-bg: #0d3818;
+            --theme-text: #ffffff;
+            --theme-font: 'Schoolbell', cursive;
+            --accent-color: #e74c3c;
+            --accent-hover: #c0392b;
+        }
+    </style>
+</head>
+<body>
+    <div class="terms-container">
+        <h1>📋 Terms of Service</h1>
+        <p><strong>Effective Date:</strong> August 3, 2025</p>
+        
+        <div class="highlight">
+            <p><strong>🎯 Welcome to Dots and Boxes Classroom Edition!</strong> These terms govern your use of our educational game. By playing, you agree to these terms.</p>
+        </div>
+
+        <h2>🎮 About Our Game</h2>
+        <p>Dots and Boxes Classroom Edition is a free educational game designed for:</p>
+        <ul>
+            <li><strong>Students:</strong> To learn strategy and have fun</li>
+            <li><strong>Teachers:</strong> To engage students in mathematical thinking</li>
+            <li><strong>Families:</strong> To enjoy quality time together</li>
+            <li><strong>Everyone:</strong> Who loves classic strategy games</li>
+        </ul>
+
+        <h2>✅ Acceptable Use</h2>
+        <h3>You MAY:</h3>
+        <ul>
+            <li>Play the game for educational purposes</li>
+            <li>Use it in classroom settings</li>
+            <li>Share room codes with friends and classmates</li>
+            <li>Chat respectfully during gameplay</li>
+            <li>Enjoy local and online multiplayer modes</li>
+        </ul>
+
+        <h3>You MAY NOT:</h3>
+        <ul>
+            <li>Use inappropriate language in chat</li>
+            <li>Attempt to cheat or exploit the game</li>
+            <li>Share personal information in chat</li>
+            <li>Disrupt other players' games</li>
+            <li>Reverse engineer or copy the game code</li>
+        </ul>
+
+        <h2>🔐 Account Responsibilities</h2>
+        <p>When using Google Sign-In:</p>
+        <ul>
+            <li><strong>Age Requirements:</strong> Follow Google's age requirements for accounts</li>
+            <li><strong>Account Security:</strong> Keep your Google account secure</li>
+            <li><strong>Shared Devices:</strong> Remember to sign out on shared computers</li>
+            <li><strong>Parental Consent:</strong> Students under 13 need parental permission</li>
+        </ul>
+
+        <h2>🎓 Educational Use Guidelines</h2>
+        <h3>For Teachers:</h3>
+        <ul>
+            <li>Monitor student interactions during classroom use</li>
+            <li>Ensure students understand appropriate chat behavior</li>
+            <li>Consider using local mode for younger students</li>
+            <li>Review privacy policy before classroom implementation</li>
+        </ul>
+
+        <h3>For Students:</h3>
+        <ul>
+            <li>Follow your teacher's guidelines for game use</li>
+            <li>Be respectful to all players</li>
+            <li>Ask for help if you encounter any issues</li>
+            <li>Remember that chat messages may be visible to teachers</li>
+        </ul>
+
+        <h2>💬 Chat and Communication</h2>
+        <p>Our in-game chat is designed for game-related communication:</p>
+        <ul>
+            <li><strong>Keep it Game-Related:</strong> Discuss moves, strategy, and encouragement</li>
+            <li><strong>Be Respectful:</strong> Treat all players with kindness</li>
+            <li><strong>No Personal Info:</strong> Don't share real names, locations, or contact details</li>
+            <li><strong>Report Issues:</strong> Contact us if you encounter inappropriate behavior</li>
+        </ul>
+
+        <div class="warning">
+            <p><strong>⚠️ Important:</strong> Chat messages are temporary and automatically deleted when games end. However, always chat responsibly!</p>
+        </div>
+
+        <h2>🛡️ Privacy and Data</h2>
+        <p>Please review our <a href="privacy.html">Privacy Policy</a> for detailed information about:</p>
+        <ul>
+            <li>What information we collect</li>
+            <li>How we protect your data</li>
+            <li>Your rights and choices</li>
+            <li>COPPA compliance for educational use</li>
+        </ul>
+
+        <h2>🚫 Prohibited Conduct</h2>
+        <p>The following behaviors are not allowed:</p>
+        <ul>
+            <li><strong>Harassment:</strong> Bullying, threatening, or intimidating other players</li>
+            <li><strong>Inappropriate Content:</strong> Offensive language, images, or behavior</li>
+            <li><strong>Cheating:</strong> Using exploits, bots, or unfair advantages</li>
+            <li><strong>Spam:</strong> Flooding chat with repetitive or irrelevant messages</li>
+            <li><strong>Impersonation:</strong> Pretending to be someone else</li>
+        </ul>
+
+        <h2>⚖️ Liability and Disclaimers</h2>
+        <ul>
+            <li><strong>Educational Tool:</strong> This game is provided as-is for educational purposes</li>
+            <li><strong>No Warranties:</strong> We don't guarantee uninterrupted or error-free service</li>
+            <li><strong>User Responsibility:</strong> You're responsible for your conduct and content</li>
+            <li><strong>Third-Party Services:</strong> We use Google services for authentication</li>
+        </ul>
+
+        <h2>🔧 Service Availability</h2>
+        <p>While we strive for reliable service:</p>
+        <ul>
+            <li>We may temporarily suspend service for maintenance</li>
+            <li>Internet connectivity issues may affect online play</li>
+            <li>Local mode is always available as a backup</li>
+            <li>We'll notify users of planned maintenance when possible</li>
+        </ul>
+
+        <h2>📝 Changes to Terms</h2>
+        <p>We may update these terms to:</p>
+        <ul>
+            <li>Reflect changes in our service</li>
+            <li>Comply with legal requirements</li>
+            <li>Improve user experience</li>
+            <li>Address new features or functionality</li>
+        </ul>
+
+        <div class="highlight">
+            <p><strong>📣 Notice of Changes:</strong> We'll update the effective date and highlight significant changes within the game interface.</p>
+        </div>
+
+        <h2>📞 Contact and Support</h2>
+        <p>Need help or have questions?</p>
+        <ul>
+            <li><strong>Technical Issues:</strong> support@dotsandboxes.education</li>
+            <li><strong>Educational Questions:</strong> teachers@dotsandboxes.education</li>
+            <li><strong>Privacy Concerns:</strong> privacy@dotsandboxes.education</li>
+            <li><strong>General Feedback:</strong> feedback@dotsandboxes.education</li>
+        </ul>
+
+        <h2>🌍 Jurisdiction</h2>
+        <p>These terms are governed by the laws applicable to educational software and online services. For educational institutions, please consult your legal department regarding compliance with local regulations.</p>
+
+        <div class="highlight">
+            <p><strong>🎉 Thank You!</strong> We appreciate you choosing Dots and Boxes for your educational gaming needs. Have fun and play fair!</p>
+        </div>
+
+        <a href="index.html" class="back-btn">🏠 Back to Game</a>
+    </div>
+    
+    <script>
+        // Auto-detect theme from localStorage or default to greenboard
+        document.addEventListener('DOMContentLoaded', function() {
+            const savedTheme = localStorage.getItem('selectedTheme') || 'greenboard';
+            document.body.classList.add(`theme-${savedTheme}`);
+        });
+    </script>
+</body>
+</html>

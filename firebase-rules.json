@@ -1,0 +1,208 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+    
+    "quickMatchQueue": {
+      ".read": true,
+      "$userId": {
+        ".write": "$auth.uid === $userId",
+        ".read": true,
+        "status": {
+          ".validate": "newData.val() === 'waiting' || newData.val() === 'matched'"
+        },
+        "roomCode": {
+          ".validate": "newData.isString()"
+        },
+        "gridSize": {
+          ".validate": "newData.isNumber()"
+        },
+        "joinedAt": {
+          ".validate": "newData.isNumber()"
+        }
+      }
+    },
+
+    "matchmakingPool": {
+      ".read": true,
+      "$userId": {
+        ".write": "$auth.uid === $userId || root.child('matchmakingPool').child($userId).exists() === false",
+        ".read": true,
+        "active": {
+          ".validate": "newData.isBoolean()"
+        },
+        "lastSeen": {
+          ".validate": "newData.isNumber()"
+        },
+        "name": {
+          ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 100"
+        }
+      }
+    },
+
+    "rooms": {
+      ".read": false,
+      ".write": false,
+      
+      "$roomCode": {
+        ".read": "auth != null",
+        ".write": "auth != null",
+        
+        "code": {
+          ".validate": "newData.isString()"
+        },
+        "host": {
+          ".validate": "newData.isString()"
+        },
+        "maxPlayers": {
+          ".validate": "newData.isNumber() && newData.val() >= 2 && newData.val() <= 4"
+        },
+        "gridSize": {
+          ".validate": "newData.isNumber() && (newData.val() === 5 || newData.val() === 7 || newData.val() === 9)"
+        },
+        "status": {
+          ".validate": "newData.val() === 'waiting' || newData.val() === 'playing' || newData.val() === 'finished' || newData.val() === 'abandoned'"
+        },
+        "createdAt": {
+          ".validate": "newData.isNumber()"
+        },
+        "gameEndedAt": {
+          ".validate": "newData.isNumber() || newData.val() === null"
+        },
+
+        "players": {
+          ".read": true,
+          ".write": "auth != null",
+          
+          "$playerName": {
+            "displayName": {
+              ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 50"
+            },
+            "identity": {
+              ".validate": "newData.isString() && newData.val().length > 0"
+            },
+            "photoURL": {
+              ".validate": "newData.val() === null || newData.isString()"
+            },
+            "isHost": {
+              ".validate": "newData.isBoolean()"
+            },
+            "connected": {
+              ".validate": "newData.isBoolean()"
+            },
+            "joinedAt": {
+              ".validate": "newData.isNumber()"
+            }
+          }
+        },
+
+        "gameState": {
+          ".read": true,
+          ".write": "auth != null",
+          
+          "lines": {
+            ".validate": "newData.isArray()"
+          },
+          "lineOwners": {
+            ".validate": "newData.isObject()"
+          },
+          "boxes": {
+            ".validate": "newData.isArray()"
+          },
+          "players": {
+            ".validate": "newData.isArray()"
+          },
+          "currentPlayer": {
+            ".validate": "newData.isNumber() && newData.val() >= 0"
+          },
+          "gridSize": {
+            ".validate": "newData.isNumber() && (newData.val() === 5 || newData.val() === 7 || newData.val() === 9)"
+          },
+          "gameState": {
+            ".validate": "newData.val() === 'waiting' || newData.val() === 'playing' || newData.val() === 'finished'"
+          }
+        },
+
+        "chat": {
+          ".read": true,
+          ".write": "auth != null",
+          
+          "$messageId": {
+            "player": {
+              ".validate": "newData.isString()"
+            },
+            "message": {
+              ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 500"
+            },
+            "timestamp": {
+              ".validate": "newData.isNumber()"
+            },
+            "emoji": {
+              ".validate": "newData.val() === null || newData.isString()"
+            }
+          }
+        },
+
+        "rematchRequests": {
+          ".read": true,
+          ".write": "auth != null",
+          
+          "$playerName": {
+            "requested": {
+              ".validate": "newData.isBoolean()"
+            },
+            "timestamp": {
+              ".validate": "newData.isNumber()"
+            }
+          }
+        },
+
+        "rematchReady": {
+          ".validate": "newData.isBoolean() || newData.val() === null"
+        },
+
+        "rematchStartedAt": {
+          ".validate": "newData.isNumber() || newData.val() === null"
+        }
+      }
+    },
+
+    "globalChat": {
+      ".read": true,
+      ".write": "auth != null",
+      
+      "$messageId": {
+        "player": {
+          ".validate": "newData.isString()"
+        },
+        "displayName": {
+          ".validate": "newData.isString()"
+        },
+        "message": {
+          ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 500"
+        },
+        "timestamp": {
+          ".validate": "newData.isNumber()"
+        },
+        "avatar": {
+          ".validate": "newData.val() === null || newData.isString()"
+        }
+      }
+    },
+
+    "presence": {
+      ".read": true,
+      ".write": "auth != null",
+      
+      "$userId": {
+        ".write": "auth.uid === $userId",
+        "online": {
+          ".validate": "newData.isBoolean()"
+        },
+        "lastSeen": {
+          ".validate": "newData.isNumber()"
+        }
+      }
+    }
+  }
+}
