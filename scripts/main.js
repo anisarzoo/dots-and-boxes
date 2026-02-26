@@ -675,17 +675,8 @@ class DotsAndBoxesApp {
             this.chatManager.clearMessages();
         }
 
-        // BUG FIX: Detach all Firebase onValue listeners created in startNetworkGame
-        // These live on the app object, not networkManager, so must be cleaned up here
-        if (this._appListeners) {
-            this._appListeners.forEach(({ refObj, listener }) => {
-                try { off(refObj, 'value', listener); } catch (e) { }
-            });
-        }
+        // Reset listener guard flags
         this._appListeners = [];
-
-        // Reset listener guard flags so a subsequent network game session
-        // correctly re-adds its listeners in startNetworkGame()
         this._playersListenerAdded = false;
         this._gameStateListenerAdded = false;
         this._playerDisconnectSkipFirst = true;
@@ -1382,6 +1373,25 @@ class DotsAndBoxesApp {
         // Update waiting text and start button
         this.updateWaitingText(players);
         this.updateStartButton(players);
+
+        // Disconnect logic during active game
+        if (this.gameInstance && this.gameInstance.gameState === 'playing') {
+            const connectedPlayers = players.filter(p => p.connected !== false);
+            if (connectedPlayers.length < 2 && players.length >= 2) {
+                const disconnected = players.filter(p => p.connected === false);
+                const disconnectedNames = disconnected.map(p => p.displayName || 'A classmate').join(', ');
+                console.log('[main.js] Player disconnected during game:', disconnectedNames);
+                if (this.uiManager) {
+                    this.uiManager.showNotification(
+                        `📚 ${disconnectedNames} has left the classroom. Class dismissed!`,
+                        'error', 4000
+                    );
+                }
+                setTimeout(() => {
+                    this.goHome();
+                }, 3000);
+            }
+        }
     }
 
     updateSeatingGrid(players, gridId) {
@@ -1437,138 +1447,49 @@ class DotsAndBoxesApp {
     }
 
     async startNetworkGame() {
-        // Debug log to check if this is called and what roomStatus is
         console.log('[main.js] startNetworkGame called');
-        const roomStatus = this.networkManager.getRoomStatus();
-        console.log('[main.js] roomStatus:', roomStatus);
+        const roomCode = this.networkManager.currentRoom;
+        if (!roomCode) {
+            console.error('[main.js] No active room');
+            return;
+        }
+
         this.showScreen('gameScreen');
-        let gridSize = null;
-        if (roomStatus && roomStatus.room) {
-            if (this.networkManager.db) {
-                const db = this.networkManager.db;
-                const roomPath = `rooms/${roomStatus.room}`;
-                const roomRef = ref(db, roomPath);
-                const gridSizeRef = ref(db, `${roomPath}/gridSize`);
-                const playersRef = ref(db, `${roomPath}/players`);
-                const gameStateRef = ref(db, `${roomPath}/gameState`);
-                const chatRef = ref(db, `${roomPath}/chat`);
 
-                // Always get gridSize from Firebase room data before initializing listeners
-                try {
-                    const gridSizeSnap = await get(gridSizeRef);
-                    gridSize = gridSizeSnap.exists() ? gridSizeSnap.val() : 5;
+        try {
+            // Fetch initial room data from Supabase once
+            const { data: roomData, error } = await this.networkManager.supabase
+                .from('rooms')
+                .select('*')
+                .eq('code', roomCode)
+                .single();
 
-                    // Store maxPlayers for waiting text
-                    const roomSnap = await get(roomRef);
-                    const roomData = roomSnap.exists() ? roomSnap.val() : null;
-                    if (roomData && roomData.maxPlayers) {
-                        this._roomMaxPlayers = roomData.maxPlayers;
-                    }
+            if (error || !roomData) throw error || new Error("Room not found");
 
-                    if (this.chatManager) this.chatManager.clearMessages();
-                } catch (e) { }
-
-                // Player disconnect listener — only fires DURING active gameplay
-                if (!this._playersListenerAdded) {
-                    this._playersListenerAdded = true;
-                    this._playerDisconnectSkipFirst = true; // Skip initial snapshot
-                    if (!this._appListeners) this._appListeners = [];
-                    const playersListenerFn = (snapshot) => {
-                        if (this._playerDisconnectSkipFirst) {
-                            this._playerDisconnectSkipFirst = false;
-                            return;
-                        }
-                        const players = snapshot.exists() ? snapshot.val() : {};
-                        const connectedPlayers = Object.values(players).filter(p => p.connected !== false);
-
-                        // Only trigger abandon if game is actively playing AND players dropped below 2
-                        if (this.gameInstance && this.gameInstance.gameState === 'playing' && connectedPlayers.length < 2) {
-                            const disconnected = Object.values(players).filter(p => p.connected === false);
-                            const disconnectedNames = disconnected.map(p => p.displayName || 'A classmate').join(', ');
-
-                            console.log('[main.js] Player disconnected during game:', disconnectedNames);
-
-                            if (this.uiManager) {
-                                this.uiManager.showNotification(
-                                    `📚 ${disconnectedNames} has left the classroom. Class dismissed!`,
-                                    'error', 4000
-                                );
-                            }
-
-                            setTimeout(() => {
-                                this.goHome();
-                            }, 3000);
-                            return;
-                        }
-                    };
-                    onValue(playersRef, playersListenerFn);
-                    this._appListeners.push({ refObj: playersRef, listener: playersListenerFn });
-                }
-
-                if (!this._gameStateListenerAdded) {
-                    this._gameStateListenerAdded = true;
-                    if (!this._appListeners) this._appListeners = [];
-                    const gameStateListenerFn = (snapshot) => {
-                        const updatedGameState = snapshot.exists() ? snapshot.val() : null;
-                        if (!updatedGameState) return;
-
-                        if (!this.gameInstance && updatedGameState.players && updatedGameState.gameState === 'playing') {
-                            const playersArr = (Array.isArray(updatedGameState.players) ? updatedGameState.players : Object.values(updatedGameState.players)).map((p, idx) => ({
-                                id: idx + 1,
-                                displayName: p.displayName || p.name || `Player ${idx + 1}`,
-                                identity: p.identity,
-                                isHost: p.isHost,
-                                score: p.score || 0,
-                                color: this.getPlayerColor(idx + 1)
-                            }));
-                            const gs = updatedGameState.gridSize || gridSize;
-                            this.initializeGameInstance(roomStatus, updatedGameState, playersArr, gs);
-                        } else if (this.gameInstance && updatedGameState) {
-                            this.gameInstance.handleNetworkUpdate(updatedGameState);
-                            if (updatedGameState.isRematch === true || updatedGameState.reset === true) {
-                                if (this.chatManager) {
-                                    this.chatManager.clearMessages();
-                                }
-                            }
-                        }
-                    };
-                    onValue(gameStateRef, gameStateListenerFn);
-                    this._appListeners.push({ refObj: gameStateRef, listener: gameStateListenerFn });
-                }
-
-                // Fetch initial players and game state
-                try {
-                    const [playersSnap, gameStateSnap] = await Promise.all([
-                        get(playersRef),
-                        get(gameStateRef)
-                    ]);
-                    const playersObj = playersSnap.exists() ? playersSnap.val() : {};
-                    const playersArr = Object.values(playersObj).map((p, idx) => ({
-                        id: idx + 1,
-                        displayName: p.displayName || p.name || `Player ${idx + 1}`,
-                        identity: p.identity,
-                        isHost: p.isHost,
-                        score: p.score || 0,
-                        color: this.getPlayerColor(idx + 1)
-                    }));
-
-                    console.log('[main.js] playersArr:', playersArr);
-
-                    const gameState = gameStateSnap.exists() ? gameStateSnap.val() : {};
-                    console.log('[main.js] Initial gameState:', gameState);
-
-                    // Only initialize if game state indicates 'playing'
-                    if (gameState && gameState.gameState === 'playing') {
-                        this.initializeGameInstance(roomStatus, gameState, playersArr, gridSize);
-                    }
-                } catch (error) {
-                    console.error('[main.js] Error fetching room data:', error);
-                }
-            } else {
-                console.error('[main.js] Firebase database not initialized');
+            const gridSize = roomData.grid_size || 5;
+            if (roomData.max_players) {
+                this._roomMaxPlayers = roomData.max_players;
             }
-        } else {
-            console.error('[main.js] Invalid room status');
+            if (this.chatManager) this.chatManager.clearMessages();
+
+            const playersObj = roomData.players || {};
+            const playersArr = Object.values(playersObj).map((p, idx) => ({
+                id: idx + 1,
+                displayName: p.displayName || p.name || `Player ${idx + 1}`,
+                identity: p.identity,
+                isHost: p.isHost,
+                score: p.score || 0,
+                color: this.getPlayerColor(idx + 1),
+                connected: p.connected !== false
+            }));
+
+            const gameState = roomData.game_state || {};
+            if (roomData.status === 'playing') {
+                this.initializeGameInstance({ room: roomCode }, gameState, playersArr, gridSize);
+            }
+        } catch (e) {
+            console.error('[main.js] Error starting network game:', e);
+            this.showError('Failed to load game data. Please try again.');
         }
     }
 
