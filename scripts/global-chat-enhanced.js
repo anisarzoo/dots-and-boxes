@@ -50,7 +50,7 @@ class GlobalChatManager {
     }
 
     async initializeChat() {
-        // Since we removed Firebase auth, we'll listen to a custom event or check localStorage
+        // Listen for auth state changes from the main app
         // For now, assume auth is handled at the app level and updates a global or triggers an event
 
         // Fallback: Check if we have a user in localStorage from previous Google Sign-in logic

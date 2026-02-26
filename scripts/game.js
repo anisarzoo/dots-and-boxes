@@ -671,13 +671,15 @@ export class DotsAndBoxesGame {
             if (typeof this.soundManager.saveToMatchHistory === 'function') {
                 this.soundManager.saveToMatchHistory(result);
             }
-            // Robust local identity detection
             let localIdentity = null;
-            if (typeof this.soundManager.getPlayerIdentity === 'function') {
-                localIdentity = this.soundManager.getPlayerIdentity();
+            // Use the identity assigned during room join (most reliable)
+            if (this.networkManager && this.networkManager.playerData) {
+                localIdentity = this.networkManager.playerData.identity;
             }
-            if (!localIdentity) {
-                localIdentity = (this.players.find(p => p.isLocal)?.identity) || (this.players.find(p => safeDisplayName(p) === this.soundManager?.getPlayerName?.())?.identity);
+            if (!localIdentity && typeof this.soundManager.getPlayerName === 'function') {
+                const localName = this.soundManager.getPlayerName();
+                const localPlayer = this.players.find(p => p.displayName === localName);
+                if (localPlayer) localIdentity = localPlayer.identity;
             }
             const localPlayer = this.players.find(p => p.identity === localIdentity);
             // Always use displayName from network state for pop-up and scoreboard
@@ -1211,12 +1213,18 @@ export class DotsAndBoxesGame {
         this.isAnimating = false;
 
         // Play chalk/marker sound ONLY for lines added by the OTHER player
-        // (our own moves already play sound in drawLine)
-        const localIdentity = this.soundManager?.signedInUser?.uid
-            || this.soundManager?.getPlayerIdentity?.();
+        // Use the identity assigned during room join
+        let localIdentity = null;
+        if (this.networkManager && this.networkManager.playerData) {
+            localIdentity = this.networkManager.playerData.identity;
+        }
+        if (!localIdentity) {
+            const localName = this.soundManager?.getPlayerName?.() || '';
+            const localPlayer = this.players.find(p => p.displayName === localName);
+            if (localPlayer) localIdentity = localPlayer.identity;
+        }
         const newLines = incomingLines.filter(l => !prevLines.has(l));
         if (newLines.length > 0 && localIdentity) {
-            // Find who drew these lines via lineOwners
             newLines.forEach(lineKey => {
                 const ownerIdx = this.lineOwners.get(lineKey);
                 const ownerPlayer = ownerIdx !== undefined ? this.players[ownerIdx] : null;
@@ -1290,10 +1298,11 @@ export class DotsAndBoxesGame {
 
     isLocalPlayerTurn() {
         if (this.isLocal) return true;
-        // Match local player by identity (uid) — most reliable
-        const localIdentity = this.soundManager?.signedInUser?.uid
-            || this.soundManager?.getPlayerIdentity?.()
-            || null;
+        // Use the identity assigned during room join (most reliable)
+        let localIdentity = null;
+        if (this.networkManager && this.networkManager.playerData) {
+            localIdentity = this.networkManager.playerData.identity;
+        }
         if (!localIdentity) {
             // Fallback to display name match
             const localName = this.soundManager?.getPlayerName?.() || '';

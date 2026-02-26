@@ -886,37 +886,21 @@ class DotsAndBoxesApp {
         };
         const success = await this.networkManager.joinRoom(roomCode, joinPlayer);
         if (success) {
-            // Only reset gameState and chat if not already started
-            if (this.networkManager && this.networkManager.db && this.networkManager.currentRoom) {
-                const db = this.networkManager.db;
-                const roomPath = `rooms/${this.networkManager.currentRoom}`;
-                const roomRef = ref(db, roomPath);
-                try {
-                    let gridSize = 5;
-                    const roomSnap = await get(roomRef);
-                    const roomData = roomSnap.exists() ? roomSnap.val() : null;
-                    if (roomData && roomData.gridSize) {
-                        gridSize = roomData.gridSize;
+            // Fetch room data from Supabase to get grid size and max players
+            try {
+                const { data: roomData } = await this.networkManager.supabase
+                    .from('rooms')
+                    .select('*')
+                    .eq('code', roomCode)
+                    .single();
+
+                if (roomData) {
+                    if (roomData.max_players) {
+                        this._roomMaxPlayers = roomData.max_players;
                     }
-                    // Store maxPlayers for waiting text
-                    if (roomData && roomData.maxPlayers) {
-                        this._roomMaxPlayers = roomData.maxPlayers;
-                    }
-                    // Only reset if gameState is missing or still waiting and lines are empty
-                    if (!roomData.gameState || (roomData.gameState.gameState === 'waiting' && Array.isArray(roomData.gameState.lines) && roomData.gameState.lines.length === 0)) {
-                        await set(ref(db, `${roomPath}/gameState`), {
-                            lines: [],
-                            lineOwners: {},
-                            boxes: [],
-                            players: roomData && roomData.players ? Object.values(roomData.players) : [],
-                            currentPlayer: 0,
-                            gridSize: gridSize,
-                            gameState: 'waiting'
-                        });
-                        await remove(ref(db, `${roomPath}/chat`));
-                    }
-                } catch (e) { }
-            }
+                }
+            } catch (e) { }
+
             // Show joined room info
             const joinedRoom = document.getElementById('joinedRoom');
             if (joinedRoom) {
@@ -927,20 +911,18 @@ class DotsAndBoxesApp {
             if (joinedRoomCode) {
                 joinedRoomCode.textContent = roomCode;
             }
-            // Get grid size from networkManager
+            // Get grid size from Supabase
             let gridSize = 5;
-            if (this.networkManager && this.networkManager.db && this.networkManager.currentRoom) {
-                try {
-                    const db = this.networkManager.db;
-                    const roomPath = `rooms/${this.networkManager.currentRoom}`;
-                    const roomRef = ref(db, roomPath);
-                    const roomSnap = await get(roomRef);
-                    const roomData = roomSnap.exists() ? roomSnap.val() : null;
-                    if (roomData && roomData.gridSize) {
-                        gridSize = roomData.gridSize;
-                    }
-                } catch (e) { }
-            }
+            try {
+                const { data: roomData } = await this.networkManager.supabase
+                    .from('rooms')
+                    .select('grid_size')
+                    .eq('code', roomCode)
+                    .single();
+                if (roomData && roomData.grid_size) {
+                    gridSize = roomData.grid_size;
+                }
+            } catch (e) { }
             const joinedGridSize = document.getElementById('joinedGridSize');
             if (joinedGridSize) {
                 joinedGridSize.textContent = gridSize + ' × ' + gridSize;
@@ -960,10 +942,9 @@ class DotsAndBoxesApp {
         const userId = this.signedInUser.uid;
         const userName = this.signedInUser.displayName;
 
-        // Cleanup previous state
-        if (this.networkManager && this.networkManager.db) {
-            // Remove from matchmaking pool if present
-            await remove(ref(this.networkManager.db, `matchmakingPool/${userId}`));
+        // Cleanup previous quick match queue entry if present
+        if (this.networkManager) {
+            await this.networkManager.cancelQuickMatch();
         }
 
         // Reset UI state
