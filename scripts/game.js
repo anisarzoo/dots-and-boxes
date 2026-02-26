@@ -419,16 +419,6 @@ export class DotsAndBoxesGame {
         this.draw();
 
         if (!this.isLocal && this.networkManager) {
-            this.networkManager.makeMove({
-                line: line,
-                lineKey: lineKey,
-                currentPlayer: this.currentPlayerIndex,
-                completedBoxes: completedBoxes.map(box => ({
-                    row: box.row,
-                    col: box.col,
-                    owner: this.players[this.currentPlayerIndex]?.name
-                }))
-            });
             this.sendGameStateUpdate();
         }
     }
@@ -552,9 +542,13 @@ export class DotsAndBoxesGame {
     }
 
     animateBoxCompletion(completedBoxes) {
+        const wasQueueEmpty = this.animationQueue.length === 0;
         this.animationQueue.push(...completedBoxes);
 
-        if (!this.isAnimating) {
+        // Always ensure isAnimating is true if we have boxes to animate
+        this.isAnimating = true;
+
+        if (wasQueueEmpty) {
             this.processAnimationQueue();
         }
 
@@ -596,8 +590,8 @@ export class DotsAndBoxesGame {
         let opacity = 0;
         let scale = 0.5;
         const animate = () => {
-            opacity += 0.1;
-            scale += 0.05;
+            opacity += 0.25;
+            scale += 0.125;
             if (opacity >= 1) {
                 opacity = 1;
                 scale = 1;
@@ -1134,76 +1128,71 @@ export class DotsAndBoxesGame {
         }
     }
 
-    // Network integration methods
     handleNetworkUpdate(gameState) {
-        console.log('Network update received:', gameState);
-        // Debug: print local state before and after
-        console.log('Local state before update:', {
-            lines: Array.from(this.lines),
-            boxes: this.boxes,
-            players: this.players,
-            gridSize: this.gridSize
-        });
-        if (gameState && gameState.boxes) {
-            console.log('Network boxes:', gameState.boxes);
-        }
-        if (gameState && gameState.players) {
-            console.log('Network players:', gameState.players);
-        }
+        if (!gameState || this.isLocal) return;
 
-        // Show end game pop-up and system message for all players when game ends
-        if (gameState && gameState.gameState === 'finished' && this.gameState !== 'finished') {
+        // Detect rematch/reset BEFORE updating state
+        const incomingLines = Array.isArray(gameState.lines) ? gameState.lines : [];
+        const prevLineCount = this.lines ? this.lines.size : 0;
+        const isFreshBoard = incomingLines.length === 0 && (!gameState.boxes || gameState.boxes.length === 0);
+        const isRematch = gameState.isRematch === true || (isFreshBoard && (gameState.gameState === 'playing') && prevLineCount > 0);
+
+        // Show end game pop-up for all players when game ends (only once)
+        if (gameState.gameState === 'finished' && this.gameState !== 'finished') {
             this.endGame();
-        }
-        // Reset board for all players on rematch
-        if (gameState && gameState.reset) {
-            this.rematch();
+            return; // endGame handles modal; don't overwrite state further
         }
 
-        if (!gameState || this.isLocal) {
-            console.log('Invalid game state or local mode detected');
-            return;
-        }
-
-        // Detect new lines for sound sync
+        // Determine which lines are actually new (network added them, not us)
         const prevLines = this.lines ? new Set(this.lines) : new Set();
-        const newLinesArr = gameState.lines || [];
-        // FULLY RESET all relevant state from network
-        this.lines = new Set(newLinesArr);
+
+        // ---- Merge network state into local state ----
+        // Preserve player colors that were assigned locally (network doesn't store colors)
+        const existingColorMap = new Map();
+        if (Array.isArray(this.players)) {
+            this.players.forEach(p => {
+                if (p.identity && p.color) existingColorMap.set(p.identity, p.color);
+            });
+        }
+
+        this.lines = new Set(incomingLines);
         this.lineOwners = new Map(Object.entries(gameState.lineOwners || {}));
         this.currentPlayerIndex = gameState.currentPlayer !== undefined ? gameState.currentPlayer : 0;
-        // Use player objects as provided by network state; do not generate identity here
+
+        // Merge players — preserve colors assigned locally
+        const getPlayerColor = (idx) => {
+            const colors = ['#e74c3c', '#3498db', '#27ae60', '#2c3e50'];
+            return colors[idx] || '#333333';
+        };
         this.players = Array.isArray(gameState.players) ? gameState.players.map((p, idx) => ({
             ...p,
-            displayName: p.displayName || p.name,
-            id: p.id !== undefined ? p.id : idx + 1
-        })) : [];
-        // Normalize box owners to player identity
+            displayName: p.displayName || p.name || `Player ${idx + 1}`,
+            id: p.id !== undefined ? p.id : idx + 1,
+            // Restore color: prefer existing map, then fall back to computed color
+            color: existingColorMap.get(p.identity) || p.color || getPlayerColor(idx)
+        })) : this.players;
+
+        // Normalize box owners
         this.boxes = Array.isArray(gameState.boxes) ? gameState.boxes.map(b => {
             let ownerIdentity = b.owner;
             if (typeof ownerIdentity === 'number' && this.players[ownerIdentity]) {
                 ownerIdentity = this.players[ownerIdentity].identity;
             }
-            // If owner is a string, try to match to a player identity
-            if (typeof ownerIdentity === 'string') {
-                const match = this.players.find(p => p.identity === ownerIdentity);
-                if (match) ownerIdentity = match.identity;
-            }
             return { ...b, owner: ownerIdentity };
         }) : [];
 
-        // Play sound if a new line was added (network sync)
-        if (newLinesArr.length > prevLines.size) {
-            // Find the new line(s)
-            const newLine = newLinesArr.find(l => !prevLines.has(l));
-            if (newLine && this.soundManager) {
-                const theme = document.body.classList.contains('theme-whiteboard') ? 'whiteboard' : 'greenboard';
-                const soundName = theme === 'greenboard' ? 'chalk' : 'marker';
-                this.soundManager.playSound(soundName);
-            }
+        // Handle rematch: clear visuals and reinit canvas
+        if (isRematch) {
+            console.log('[Game] Rematch detected — clearing board');
+            this.dotOffsets.clear();
+            this.lineSegments.clear();
+            this.animationQueue = [];
+            this.isAnimating = false;
+            this.gameState = 'playing';
+            this.setupCanvas();
         }
 
-        // Re-initialize grid and visuals if gridSize changed from network
+        // Handle grid size change
         if (gameState.gridSize && gameState.gridSize !== this.gridSize) {
             this.gridSize = gameState.gridSize;
             this.grid = this.initializeGrid();
@@ -1213,42 +1202,31 @@ export class DotsAndBoxesGame {
             this.setupCanvas();
         }
 
-        // Clear any local animation or effect state
+        if (gameState.gameState === 'playing' && this.gameState !== 'playing') {
+            this.gameState = 'playing';
+        }
+
+        // Clear animation state from network updates
         this.animationQueue = [];
         this.isAnimating = false;
 
-        // After updating this.players:
-        // Check for disconnected players and notify
-        this.players.forEach((p, idx) => {
-            if (p.connected === false && !p._notifiedLeft) {
-                this.soundManager?.chatManager?.addSystemMessage(`${p.displayName || p.name} has left the match.`, 'info');
-                p._notifiedLeft = true;
-            }
-        });
-        // Skip turn if current player is disconnected
-        let attempts = 0;
-        while (!this.isPlayerConnected(this.players[this.currentPlayerIndex]) && attempts < this.players.length) {
-            this.currentPlayerIndex = (this.currentPlayerIndex + 1) % this.players.length;
-            attempts++;
+        // Play chalk/marker sound ONLY for lines added by the OTHER player
+        // (our own moves already play sound in drawLine)
+        const localIdentity = this.soundManager?.signedInUser?.uid
+            || this.soundManager?.getPlayerIdentity?.();
+        const newLines = incomingLines.filter(l => !prevLines.has(l));
+        if (newLines.length > 0 && localIdentity) {
+            // Find who drew these lines via lineOwners
+            newLines.forEach(lineKey => {
+                const ownerIdx = this.lineOwners.get(lineKey);
+                const ownerPlayer = ownerIdx !== undefined ? this.players[ownerIdx] : null;
+                const isOwnMove = ownerPlayer && ownerPlayer.identity === localIdentity;
+                if (!isOwnMove && this.soundManager) {
+                    const theme = document.body.classList.contains('theme-whiteboard') ? 'whiteboard' : 'greenboard';
+                    this.soundManager.playSound(theme === 'greenboard' ? 'chalk' : 'marker');
+                }
+            });
         }
-        // Win by default if only one player remains
-        const connectedPlayers = this.players.filter(p => this.isPlayerConnected(p));
-        if (connectedPlayers.length === 1 && this.gameState === 'playing') {
-            this.soundManager?.chatManager?.addSystemMessage(`${connectedPlayers[0].displayName || connectedPlayers[0].name} wins by default!`, 'info');
-            this.endGame();
-        }
-
-        console.log('Local state after update:', {
-            lines: Array.from(this.lines),
-            boxes: this.boxes,
-            players: this.players,
-            gridSize: this.gridSize
-        });
-
-        // Log each box and owner for debugging
-        this.boxes.forEach(box => {
-            console.log('[handleNetworkUpdate] Box:', box, 'Owner:', box.owner);
-        });
 
         this.updateUI();
         this.draw();
@@ -1312,18 +1290,25 @@ export class DotsAndBoxesGame {
 
     isLocalPlayerTurn() {
         if (this.isLocal) return true;
-
-        // It's the local player's turn if their identity matches the local identity
-        const localPlayerName = this.soundManager?.getPlayerName?.() || 'Player';
-        const localPlayer = this.players.find(p => p.displayName === localPlayerName);
-        return localPlayer && this.players[this.currentPlayerIndex]?.identity === localPlayer.identity;
+        // Match local player by identity (uid) — most reliable
+        const localIdentity = this.soundManager?.signedInUser?.uid
+            || this.soundManager?.getPlayerIdentity?.()
+            || null;
+        if (!localIdentity) {
+            // Fallback to display name match
+            const localName = this.soundManager?.getPlayerName?.() || '';
+            const localPlayer = this.players.find(p => p.displayName === localName);
+            if (!localPlayer) return false;
+            return this.players[this.currentPlayerIndex]?.identity === localPlayer.identity;
+        }
+        const localPlayer = this.players.find(p => p.identity === localIdentity);
+        if (!localPlayer) return false;
+        return this.players[this.currentPlayerIndex]?.identity === localPlayer.identity;
     }
 
     canMakeMove() {
         if (this.gameState !== 'playing' || this.isAnimating) return false;
-
         if (this.isLocal) return true;
-
         return this.isLocalPlayerTurn();
     }
 

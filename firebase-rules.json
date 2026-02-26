@@ -1,208 +1,182 @@
 {
   "rules": {
-    ".read": false,
-    ".write": false,
-    
-    "quickMatchQueue": {
-      ".read": true,
-      "$userId": {
-        ".write": "$auth.uid === $userId",
+    "rooms": {
+      "$roomId": {
         ".read": true,
-        "status": {
-          ".validate": "newData.val() === 'waiting' || newData.val() === 'matched'"
+        ".write": "auth != null",
+        "host": {
+          ".read": true,
+          ".write": "auth != null"
         },
-        "roomCode": {
-          ".validate": "newData.isString()"
+        "status": {
+          ".read": true,
+          ".write": "auth != null"
         },
         "gridSize": {
-          ".validate": "newData.isNumber()"
-        },
-        "joinedAt": {
-          ".validate": "newData.isNumber()"
-        }
-      }
-    },
-
-    "matchmakingPool": {
-      ".read": true,
-      "$userId": {
-        ".write": "$auth.uid === $userId || root.child('matchmakingPool').child($userId).exists() === false",
-        ".read": true,
-        "active": {
-          ".validate": "newData.isBoolean()"
-        },
-        "lastSeen": {
-          ".validate": "newData.isNumber()"
-        },
-        "name": {
-          ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 100"
-        }
-      }
-    },
-
-    "rooms": {
-      ".read": false,
-      ".write": false,
-      
-      "$roomCode": {
-        ".read": "auth != null",
-        ".write": "auth != null",
-        
-        "code": {
-          ".validate": "newData.isString()"
-        },
-        "host": {
-          ".validate": "newData.isString()"
+          ".read": true,
+          ".write": "auth != null"
         },
         "maxPlayers": {
-          ".validate": "newData.isNumber() && newData.val() >= 2 && newData.val() <= 4"
-        },
-        "gridSize": {
-          ".validate": "newData.isNumber() && (newData.val() === 5 || newData.val() === 7 || newData.val() === 9)"
-        },
-        "status": {
-          ".validate": "newData.val() === 'waiting' || newData.val() === 'playing' || newData.val() === 'finished' || newData.val() === 'abandoned'"
+          ".read": true,
+          ".write": "auth != null"
         },
         "createdAt": {
-          ".validate": "newData.isNumber()"
+          ".read": true,
+          ".write": "auth != null"
         },
-        "gameEndedAt": {
-          ".validate": "newData.isNumber() || newData.val() === null"
-        },
-
         "players": {
           ".read": true,
           ".write": "auth != null",
-          
-          "$playerName": {
-            "displayName": {
-              ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 50"
-            },
-            "identity": {
-              ".validate": "newData.isString() && newData.val().length > 0"
-            },
-            "photoURL": {
-              ".validate": "newData.val() === null || newData.isString()"
-            },
-            "isHost": {
-              ".validate": "newData.isBoolean()"
-            },
-            "connected": {
-              ".validate": "newData.isBoolean()"
-            },
-            "joinedAt": {
-              ".validate": "newData.isNumber()"
-            }
+          "$playerId": {
+            ".read": true,
+            ".write": "auth != null"
           }
         },
-
         "gameState": {
           ".read": true,
           ".write": "auth != null",
-          
           "lines": {
-            ".validate": "newData.isArray()"
+            ".read": true,
+            ".write": "auth != null"
           },
           "lineOwners": {
-            ".validate": "newData.isObject()"
+            ".read": true,
+            ".write": "auth != null"
           },
           "boxes": {
-            ".validate": "newData.isArray()"
-          },
-          "players": {
-            ".validate": "newData.isArray()"
+            ".read": true,
+            ".write": "auth != null"
           },
           "currentPlayer": {
-            ".validate": "newData.isNumber() && newData.val() >= 0"
+            ".read": true,
+            ".write": "auth != null"
           },
-          "gridSize": {
-            ".validate": "newData.isNumber() && (newData.val() === 5 || newData.val() === 7 || newData.val() === 9)"
+          "players": {
+            ".read": true,
+            ".write": "auth != null"
           },
           "gameState": {
-            ".validate": "newData.val() === 'waiting' || newData.val() === 'playing' || newData.val() === 'finished'"
+            ".read": true,
+            ".write": "auth != null"
+          },
+          "isRematch": {
+            ".read": true,
+            ".write": "auth != null"
+          },
+          "reset": {
+            ".read": true,
+            ".write": "auth != null"
           }
         },
-
         "chat": {
           ".read": true,
           ".write": "auth != null",
-          
           "$messageId": {
-            "player": {
-              ".validate": "newData.isString()"
-            },
-            "message": {
-              ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 500"
-            },
-            "timestamp": {
-              ".validate": "newData.isNumber()"
-            },
-            "emoji": {
-              ".validate": "newData.val() === null || newData.isString()"
-            }
+            ".read": true,
+            ".write": "auth != null"
           }
         },
-
         "rematchRequests": {
           ".read": true,
           ".write": "auth != null",
-          
-          "$playerName": {
-            "requested": {
-              ".validate": "newData.isBoolean()"
-            },
-            "timestamp": {
-              ".validate": "newData.isNumber()"
+          "$playerId": {
+            ".read": true,
+            ".write": "auth != null"
+          }
+        },
+        "rematchState": {
+          ".read": true,
+          ".write": "auth != null",
+          "active": {
+            ".read": true,
+            ".write": "auth != null"
+          },
+          "startTime": {
+            ".read": true,
+            ".write": "auth != null"
+          },
+          "hostId": {
+            ".read": true,
+            ".write": "auth != null"
+          },
+          "timeout": {
+            ".read": true,
+            ".write": "auth != null"
+          },
+          "players": {
+            ".read": true,
+            ".write": "auth != null",
+            "$playerId": {
+              ".read": true,
+              ".write": "auth != null"
             }
           }
         },
-
         "rematchReady": {
-          ".validate": "newData.isBoolean() || newData.val() === null"
+          ".read": true,
+          ".write": "auth != null"
         },
-
-        "rematchStartedAt": {
-          ".validate": "newData.isNumber() || newData.val() === null"
+        "gameEndedAt": {
+          ".read": true,
+          ".write": "auth != null"
         }
       }
     },
-
+    "quickMatchQueue": {
+      ".read": true,
+      ".write": "auth != null",
+      ".indexOn": [
+        "timestamp",
+        "gridSize"
+      ],
+      "$playerId": {
+        ".read": true,
+        ".write": "auth != null"
+      }
+    },
+    "matchmakingPool": {
+      ".read": true,
+      ".write": "auth != null",
+      ".indexOn": [
+        "timestamp",
+        "gridSize"
+      ],
+      "$playerId": {
+        ".read": true,
+        ".write": "auth != null"
+      }
+    },
     "globalChat": {
       ".read": true,
       ".write": "auth != null",
-      
+      ".indexOn": [
+        "timestamp"
+      ],
       "$messageId": {
-        "player": {
-          ".validate": "newData.isString()"
-        },
-        "displayName": {
-          ".validate": "newData.isString()"
-        },
-        "message": {
-          ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 500"
-        },
-        "timestamp": {
-          ".validate": "newData.isNumber()"
-        },
-        "avatar": {
-          ".validate": "newData.val() === null || newData.isString()"
-        }
+        ".read": true,
+        ".write": "auth != null"
       }
     },
-
-    "presence": {
+    "globalChatMessages": {
       ".read": true,
       ".write": "auth != null",
-      
-      "$userId": {
-        ".write": "auth.uid === $userId",
-        "online": {
-          ".validate": "newData.isBoolean()"
-        },
-        "lastSeen": {
-          ".validate": "newData.isNumber()"
-        }
+      ".indexOn": [
+        "timestamp"
+      ],
+      "$messageId": {
+        ".read": true,
+        ".write": "auth != null"
       }
-    }
+    },
+    "onlineUsers": {
+      ".read": true,
+      ".write": "auth != null",
+      "$userId": {
+        ".read": true,
+        ".write": "auth != null"
+      }
+    },
+    ".read": false,
+    ".write": false
   }
 }

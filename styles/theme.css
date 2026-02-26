@@ -419,12 +419,41 @@ body.theme-greenboard .final-score-item {
 
 /* Emoji picker theme adjustments */
 body.theme-greenboard .emoji-picker {
-    background: #1a3009;
+    background: #0d2b14;
     border-color: #ffffff;
 }
 
-body.theme-greenboard .emoji-picker button:hover {
+body.theme-greenboard .emoji-picker-tabs {
+    background: rgba(255, 255, 255, 0.05);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+body.theme-greenboard .emoji-picker-tab {
+    color: #ffffff;
+    opacity: 0.6;
+}
+
+body.theme-greenboard .emoji-picker-tab.active {
     background: rgba(255, 255, 255, 0.2);
+    opacity: 1;
+}
+
+body.theme-greenboard .emoji-picker-tab svg {
+    stroke: #ffffff;
+}
+
+body.theme-greenboard .emoji-picker button:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+body.theme-greenboard .chat-input {
+    background: #0d2b14;
+    border-top: 2px solid rgba(255, 255, 255, 0.1);
+}
+
+body.theme-whiteboard .chat-input {
+    background: #ffffff;
+    border-top: 1px solid #e0e0e0;
 }
 
 /* Support button theme adjustments */
@@ -714,11 +743,15 @@ body.theme-greenboard .join-btn:hover {
 body.theme-greenboard .room-info {
     background: rgba(26, 48, 9, 0.9);
     border-color: #ffffff;
-    color: #60a560;
+    color: #ffffff;
 }
 
 body.theme-greenboard .room-info h3 {
     color: #ffffff;
+}
+
+body.theme-greenboard .room-info label {
+    color: #cccccc;
 }
 
 body.theme-greenboard .code-display,
@@ -727,13 +760,46 @@ body.theme-greenboard .link-display {
     border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
-body.theme-greenboard .copy-btn {
-    background: #ffffff;
-    color: #1a3009;
+body.theme-greenboard .code-display span,
+body.theme-greenboard .link-display span {
+    color: #ffffff;
 }
 
-body.theme-greenboard .copy-btn:hover {
-    background: #cccccc;
+
+
+/* Fix waiting message contrast on green theme */
+body.theme-greenboard .waiting-message,
+body.theme-greenboard .lobby-players h4 {
+    color: #ffffff !important;
+}
+
+/* Fix system messages contrast on green theme */
+body.theme-greenboard .system-message {
+    background: rgba(255, 255, 255, 0.85);
+    color: #1a3009;
+    font-weight: 600;
+}
+
+/* Fix emoji button visibility on green theme */
+body.theme-greenboard .emoji-btn {
+    color: #ffffff;
+}
+
+body.theme-greenboard .emoji-btn:hover {
+    background: rgba(255, 255, 255, 0.15);
+}
+
+/* Fix chat input text visibility on green theme */
+body.theme-greenboard .chat-input input,
+body.theme-greenboard .chat-input textarea {
+    background: rgba(255, 255, 255, 0.1);
+    color: #ffffff;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+body.theme-greenboard .chat-input input::placeholder,
+body.theme-greenboard .chat-input textarea::placeholder {
+    color: rgba(255, 255, 255, 0.5);
 }
 
 /* Consistent top-left alignment for Back to Home button on setup/join/room/quickmatch screens */

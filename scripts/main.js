@@ -5,22 +5,7 @@ import { DotsAndBoxesGame } from './game.js';
 import { RematchManager } from './rematch.js';
 import { OrientationHandler } from './orientation-handler.js';
 // Main JavaScript - App initialization and screen management
-import { auth } from './firebase-config.js';
-import {
-    GoogleAuthProvider,
-    signInWithPopup,
-    signOut,
-    onAuthStateChanged
-} from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
-import {
-    ref,
-    set,
-    get,
-    onValue,
-    remove,
-    update,
-    onDisconnect
-} from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js';
+import { supabase } from './supabase-config.js';
 
 class DotsAndBoxesApp {
     _isGoingHome = false;
@@ -62,19 +47,13 @@ class DotsAndBoxesApp {
         this.matchHistory = this.matchHistory.slice(0, 50); // Keep last 50 matches
         localStorage.setItem('dotsAndBoxesHistory', JSON.stringify(this.matchHistory));
     }
-    // Google Auth logic
+    // Supabase Auth logic
     setupGoogleAuth() {
-        // Modular Firebase Auth instance
         const signInBtn = document.getElementById('googleSignInBtn');
         const signOutBtn = document.getElementById('signOutBtn');
         const userInfoDiv = document.getElementById('signedInUserInfo');
         const userPhoto = document.getElementById('userPhoto');
         const userNameDisplay = document.getElementById('userNameDisplay');
-        const modeButtons = document.querySelectorAll('.mode-btn');
-
-        if (!signInBtn) {
-            // console.error('Google Sign-In button not found in DOM during init (delegation handles this)');
-        }
 
         const updateUI = (user) => {
             const localGameBtn = document.getElementById('localGameBtn');
@@ -83,10 +62,15 @@ class DotsAndBoxesApp {
             if (user) {
                 if (signInBtn) signInBtn.style.display = 'none';
                 if (userInfoDiv) userInfoDiv.style.display = '';
-                if (userNameDisplay) userNameDisplay.textContent = user.displayName || user.email || 'Signed in';
+
+                // Supabase puts google metadata in user_metadata
+                const meta = user.user_metadata || {};
+                const dName = meta.full_name || user.email || 'Signed in';
+                if (userNameDisplay) userNameDisplay.textContent = dName;
+
                 if (userPhoto) {
-                    if (user.photoURL) {
-                        userPhoto.src = user.photoURL;
+                    if (meta.avatar_url) {
+                        userPhoto.src = meta.avatar_url;
                         userPhoto.style.display = '';
                     } else {
                         userPhoto.style.display = 'none';
@@ -98,47 +82,59 @@ class DotsAndBoxesApp {
             }
         };
 
-        onAuthStateChanged(auth, (user) => {
+        // Listen for Supabase auth changes
+        supabase.auth.onAuthStateChange((event, session) => {
+            const user = session?.user || null;
             if (user) {
                 this.setSignedInUser(user);
                 updateUI(user);
+                if (window.globalChatManager) window.globalChatManager.handleAuthStateChange(this.signedInUser);
             } else {
                 this.setSignedInUser(null);
                 updateUI(null);
+                if (window.globalChatManager) window.globalChatManager.handleAuthStateChange(null);
             }
         });
 
+        // Trigger initial check
+        supabase.auth.getSession().then(({ data: { session } }) => {
+            const user = session?.user || null;
+            this.setSignedInUser(user);
+            updateUI(user);
+        });
+
         // Event Delegation for Sign In
-        document.addEventListener('click', (e) => {
+        document.addEventListener('click', async (e) => {
             const btn = e.target.closest('#googleSignInBtn');
             if (btn) {
-                e.preventDefault(); // Stop any default form submission or navigation
-                const provider = new GoogleAuthProvider();
-                signInWithPopup(auth, provider).then(result => {
-                    // Sign-in successful
-                }).catch(err => {
-                    console.error('Google sign-in failed:', err);
-                    alert('Google sign-in failed: ' + err.message);
-                });
+                e.preventDefault();
+                const { error } = await supabase.auth.signInWithOAuth({ provider: 'google' });
+                if (error) {
+                    console.error('Google sign-in failed:', error);
+                    alert('Google sign-in failed: ' + error.message);
+                }
             }
 
             const signOutTarget = e.target.closest('#signOutBtn');
             if (signOutTarget) {
                 e.preventDefault();
-                signOut(auth);
+                await supabase.auth.signOut();
             }
         });
     }
 
-    // Call this after Google sign-in: window.dotsAndBoxesApp.setSignedInUser(user)
+    // Call this after Google sign-in or sign-out
     setSignedInUser(user) {
-        if (!user) return;
+        if (!user) {
+            this.signedInUser = null;
+            return;
+        }
+        const meta = user.user_metadata || {};
         this.signedInUser = {
-            displayName: user.displayName || 'Player',
-            uid: user.uid,
-            photoURL: user.photoURL || null
+            displayName: meta.full_name || user.email || 'Player',
+            uid: user.id,
+            photoURL: meta.avatar_url || null
         };
-        // Optionally update UI with user info here
     }
 
     init() {
@@ -331,6 +327,14 @@ class DotsAndBoxesApp {
             const modal = document.getElementById('loginRequiredModal');
             if (modal) modal.classList.remove('hidden');
         };
+        // Multiplayer flow
+        const multiplayerBtn = document.getElementById('multiplayerBtn');
+        if (multiplayerBtn) {
+            multiplayerBtn.addEventListener('click', () => {
+                this.playSound('click');
+                this.showScreen('multiplayerChoiceScreen');
+            });
+        }
         // Create Room
         if (createRoomBtn) {
             createRoomBtn.disabled = false;
@@ -525,11 +529,13 @@ class DotsAndBoxesApp {
             this.playSound('click');
             this.createRoom();
         });
-        document.getElementById('copyCode')?.addEventListener('click', () => {
-            this.copyToClipboard(document.getElementById('roomCodeDisplay')?.textContent || '');
+        document.getElementById('roomCodeContainer')?.addEventListener('click', () => {
+            const code = document.getElementById('roomCodeDisplay')?.textContent || '';
+            this.copyToClipboard(code, document.getElementById('roomCodeContainer'));
         });
-        document.getElementById('copyLink')?.addEventListener('click', () => {
-            this.copyToClipboard(document.getElementById('inviteLink')?.textContent || '');
+        document.getElementById('inviteLinkContainer')?.addEventListener('click', () => {
+            const link = document.getElementById('inviteLink')?.textContent || '';
+            this.copyToClipboard(link, document.getElementById('inviteLinkContainer'));
         });
         document.getElementById('startRoomGame')?.addEventListener('click', () => {
             this.playSound('click');
@@ -552,7 +558,8 @@ class DotsAndBoxesApp {
 
     bindMobileEvents() {
         this.bindChatDrawer();
-        document.getElementById('mobileScoreBtn')?.addEventListener('click', () => {
+        document.getElementById('mobileScoreBtn')?.addEventListener('click', (e) => {
+            e.stopPropagation();
             this.playSound('click');
             this.toggleMobileDrawer('mobileScoreDrawer');
         });
@@ -561,10 +568,23 @@ class DotsAndBoxesApp {
             window.open('https://buymeacoffee.com/anisarzoo', '_blank');
         });
         document.querySelectorAll('.drawer-close').forEach(btn => {
-            btn.addEventListener('click', () => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
                 this.playSound('click');
                 this.hideAllDrawers();
             });
+        });
+
+        // Click outside drawer to close on mobile
+        document.addEventListener('click', (e) => {
+            const drawers = document.querySelectorAll('.mobile-drawer.show');
+            if (drawers.length > 0) {
+                drawers.forEach(drawer => {
+                    if (!drawer.contains(e.target)) {
+                        this.hideAllDrawers();
+                    }
+                });
+            }
         });
     }
 
@@ -643,12 +663,34 @@ class DotsAndBoxesApp {
             this.networkManager.leaveRoom();
         }
         if (this.gameInstance) {
+            // Cleanup rematch manager listeners if present
+            if (this.gameInstance.rematchManager) {
+                this.gameInstance.rematchManager.cleanup();
+                this.gameInstance.rematchManager = null;
+            }
             this.gameInstance.cleanup();
             this.gameInstance = null;
         }
         if (this.chatManager) {
             this.chatManager.clearMessages();
         }
+
+        // BUG FIX: Detach all Firebase onValue listeners created in startNetworkGame
+        // These live on the app object, not networkManager, so must be cleaned up here
+        if (this._appListeners) {
+            this._appListeners.forEach(({ refObj, listener }) => {
+                try { off(refObj, 'value', listener); } catch (e) { }
+            });
+        }
+        this._appListeners = [];
+
+        // Reset listener guard flags so a subsequent network game session
+        // correctly re-adds its listeners in startNetworkGame()
+        this._playersListenerAdded = false;
+        this._gameStateListenerAdded = false;
+        this._playerDisconnectSkipFirst = true;
+        this._roomMaxPlayers = null;
+
         window.location.hash = '';
         this.showScreen('homeScreen');
         this.resetForms();
@@ -681,6 +723,14 @@ class DotsAndBoxesApp {
         // Restore the create room bar (the fixed-action-bar in createRoomScreen)
         const createRoomScreen = document.getElementById('createRoomScreen');
         if (createRoomScreen) {
+            const title = createRoomScreen.querySelector('#createRoomTitle');
+            if (title) title.classList.remove('hidden');
+
+            const settings = createRoomScreen.querySelector('.room-settings');
+            if (settings) {
+                settings.classList.remove('hidden');
+                settings.style.display = '';
+            }
             const actionBars = createRoomScreen.querySelectorAll('.fixed-action-bar');
             actionBars.forEach(bar => {
                 if (bar.querySelector('#createRoom')) {
@@ -755,6 +805,8 @@ class DotsAndBoxesApp {
             console.error('NetworkManager not initialized');
             return;
         }
+        // Store maxPlayers for waiting text
+        this._roomMaxPlayers = playerCount;
         // Use Google user info for host player
         let hostPlayer = {
             id: 1,
@@ -780,9 +832,18 @@ class DotsAndBoxesApp {
                     document.getElementById('roomCodeDisplay').textContent = roomData.code;
                     document.getElementById('inviteLink').textContent = roomData.inviteLink;
                     this.updateWaitingText();
-                    // Hide the "Create Room" bar at the bottom
+
+                    // Collapse/Hide the "Create Room" settings and bar
                     const createRoomScreen = document.getElementById('createRoomScreen');
                     if (createRoomScreen) {
+                        const settings = createRoomScreen.querySelector('.room-settings');
+                        if (settings) {
+                            settings.classList.add('hidden');
+                        }
+                        const title = createRoomScreen.querySelector('#createRoomTitle');
+                        if (title) {
+                            title.classList.add('hidden');
+                        }
                         const actionBars = createRoomScreen.querySelectorAll('.fixed-action-bar');
                         actionBars.forEach(bar => {
                             if (bar.querySelector('#createRoom')) {
@@ -845,6 +906,10 @@ class DotsAndBoxesApp {
                     const roomData = roomSnap.exists() ? roomSnap.val() : null;
                     if (roomData && roomData.gridSize) {
                         gridSize = roomData.gridSize;
+                    }
+                    // Store maxPlayers for waiting text
+                    if (roomData && roomData.maxPlayers) {
+                        this._roomMaxPlayers = roomData.maxPlayers;
                     }
                     // Only reset if gameState is missing or still waiting and lines are empty
                     if (!roomData.gameState || (roomData.gameState.gameState === 'waiting' && Array.isArray(roomData.gameState.lines) && roomData.gameState.lines.length === 0)) {
@@ -945,17 +1010,17 @@ class DotsAndBoxesApp {
 
     startRoomGame() {
         if (this.networkManager && this.networkManager.isRoomHost()) {
-            // Use the lobby player list for accurate count
-            const lobbyList = document.getElementById('joinedPlayersList');
-            let playerCount = 0;
-            if (lobbyList) {
-                playerCount = lobbyList.children.length;
-            }
+            // Count occupied seats in the lobby grid (the actual DOM element)
+            const lobbyGrid = document.getElementById('lobbySeatingGrid');
+            let playerCount = lobbyGrid ? lobbyGrid.querySelectorAll('.student-seat.occupied').length : 0;
+            console.log('[main.js] startRoomGame — playerCount from lobby:', playerCount);
             if (playerCount < 2) {
                 this.showError('At least 2 players are required to start the game. Invite a friend to join your room!');
                 return;
             }
             this.networkManager.startGame();
+        } else {
+            console.warn('[main.js] startRoomGame called but not host or no networkManager');
         }
     }
 
@@ -979,15 +1044,6 @@ class DotsAndBoxesApp {
                 clearInterval(interval);
             }
         }, 2000);
-    }
-
-    generateRoomCode() {
-        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-        let result = '';
-        for (let i = 0; i < 4; i++) {
-            result += chars.charAt(Math.floor(Math.random() * chars.length));
-        }
-        return result;
     }
 
     getPlayerColor(playerIndex) {
@@ -1065,11 +1121,16 @@ class DotsAndBoxesApp {
         }
     }
 
-    copyToClipboard(text) {
+    copyToClipboard(text, element = null) {
+        const performCopy = () => {
+            this.playSound('click');
+            if (element) {
+                this.showCopyFeedback(element);
+            }
+        };
+
         if (navigator.clipboard) {
-            navigator.clipboard.writeText(text).then(() => {
-                this.playSound('click');
-            });
+            navigator.clipboard.writeText(text).then(performCopy);
         } else {
             const textArea = document.createElement('textarea');
             textArea.value = text;
@@ -1077,8 +1138,25 @@ class DotsAndBoxesApp {
             textArea.select();
             document.execCommand('copy');
             document.body.removeChild(textArea);
-            this.playSound('click');
+            performCopy();
         }
+    }
+
+    showCopyFeedback(element) {
+        // Remove any existing feedback first
+        element.querySelectorAll('.copy-feedback').forEach(el => el.remove());
+
+        const feedback = document.createElement('div');
+        feedback.className = 'copy-feedback';
+        feedback.textContent = 'copied!';
+        element.appendChild(feedback);
+
+        // Remove the feedback element after the animation completes
+        setTimeout(() => {
+            if (feedback.parentNode) {
+                feedback.remove();
+            }
+        }, 1500);
     }
 
     onGameStart(gameData) {
@@ -1215,6 +1293,9 @@ class DotsAndBoxesApp {
         // Hide the end game modal immediately
         this.hideAllModals();
 
+        // Clean up any lingering confetti
+        document.querySelectorAll('.confetti').forEach(el => el.remove());
+
         try {
             if (this.gameInstance.isLocal) {
                 // For local games, reset directly
@@ -1237,34 +1318,41 @@ class DotsAndBoxesApp {
                 }
 
                 const rematchMgr = this.gameInstance.rematchManager;
-                console.log('[App] Requesting rematch from RematchManager');
 
+                // Set up a listener that fires on ALL clients when rematchReady becomes true.
+                rematchMgr.setupRematchListener(async () => {
+                    console.log('[App] rematchReady fired — all clients auto-starting rematch');
+                    // Host performs the DB reset
+                    if (this.networkManager && this.networkManager.isHost) {
+                        await rematchMgr.confirmRematch();
+                    }
+                    // All clients: destroy old game instance so gameState listener re-creates it
+                    if (this.gameInstance) {
+                        this.gameInstance.cleanup();
+                        this.gameInstance = null;
+                    }
+                    this.showScreen('gameScreen');
+                });
+
+                console.log('[App] Requesting rematch from RematchManager');
                 const requested = await rematchMgr.requestRematch();
 
                 if (requested) {
-                    // All players have requested, now confirm to start
-                    console.log('[App] All players requested, confirming rematch');
-                    const confirmed = await rematchMgr.confirmRematch();
-
-                    if (confirmed) {
-                        // confirmRematch already calls resetGameState
-                        this.showScreen('gameScreen');
-                        console.log('[App] Rematch confirmed and game state reset!');
-
-                        // Wait for network state update
-                        setTimeout(() => {
-                            if (this.gameInstance && typeof this.gameInstance.draw === 'function') {
-                                this.gameInstance.draw();
-                            }
-                        }, 100);
+                    // This client was the last to request — immediately confirm & reset
+                    console.log('[App] This client triggered all-ready — confirming rematch');
+                    await rematchMgr.confirmRematch();
+                    // Destroy old game instance so the gameState listener creates a fresh one
+                    if (this.gameInstance) {
+                        this.gameInstance.cleanup();
+                        this.gameInstance = null;
                     }
+                    this.showScreen('gameScreen');
                 } else {
-                    // Waiting for other players
+                    // Still waiting for other players
                     console.log('[App] Waiting for other players to request rematch');
                     this.showScreen('gameScreen');
-                    // Show a message to user
                     if (this.uiManager) {
-                        this.uiManager.showNotification('⏳ Waiting for other players...', 'info', 5000);
+                        this.uiManager.showNotification('⏳ Waiting for other classmates...', 'info', 5000);
                     }
                 }
             }
@@ -1331,16 +1419,13 @@ class DotsAndBoxesApp {
             waitingText.textContent = '🚌 Waiting for classmates...';
             return;
         }
-        if (this.networkManager && typeof this.networkManager.getCurrentRoom === 'function') {
-            const roomData = this.networkManager.getCurrentRoom();
-            if (roomData) {
-                const remaining = roomData.maxPlayers - players.length;
-                if (remaining > 0) {
-                    waitingText.textContent = `🚌 Waiting for ${remaining} more classmate${remaining !== 1 ? 's' : ''}...`;
-                } else {
-                    waitingText.textContent = '✅ Room is full! Ready to start.';
-                }
-            }
+        // Use stored maxPlayers (set during createRoom/joinRoom)
+        const maxPlayers = this._roomMaxPlayers || 2;
+        const remaining = maxPlayers - players.length;
+        if (remaining > 0) {
+            waitingText.textContent = `🚌 Waiting for ${remaining} more classmate${remaining !== 1 ? 's' : ''}...`;
+        } else {
+            waitingText.textContent = '✅ Room is full! Ready to start.';
         }
     }
 
@@ -1373,67 +1458,62 @@ class DotsAndBoxesApp {
                     const gridSizeSnap = await get(gridSizeRef);
                     gridSize = gridSizeSnap.exists() ? gridSizeSnap.val() : 5;
 
-                    // --- Only reset gameState and chat if not already started ---
+                    // Store maxPlayers for waiting text
                     const roomSnap = await get(roomRef);
                     const roomData = roomSnap.exists() ? roomSnap.val() : null;
-                    if (roomData && (!roomData.gameState || (roomData.gameState.gameState === 'waiting' && Array.isArray(roomData.gameState.lines) && roomData.gameState.lines.length === 0))) {
-                        await set(gameStateRef, {
-                            lines: [],
-                            lineOwners: {},
-                            boxes: [],
-                            players: roomData && roomData.players ? Object.values(roomData.players) : [],
-                            currentPlayer: 0,
-                            gridSize: gridSize,
-                            gameState: 'waiting'
-                        });
-                        await remove(chatRef);
+                    if (roomData && roomData.maxPlayers) {
+                        this._roomMaxPlayers = roomData.maxPlayers;
                     }
+
                     if (this.chatManager) this.chatManager.clearMessages();
                 } catch (e) { }
 
-                // Add timer to auto-abandon room if a player leaves
+                // Player disconnect listener — only fires DURING active gameplay
                 if (!this._playersListenerAdded) {
                     this._playersListenerAdded = true;
-                    onValue(playersRef, (snapshot) => {
-                        const players = snapshot.exists() ? snapshot.val() : {};
-                        const connectedPlayers = Object.values(players).filter(p => p.connected);
-                        if (connectedPlayers.length < 2) {
-                            // Abandon room and clear chat/board
-                            update(roomRef, { status: 'abandoned', gameEndedAt: Date.now() });
-                            remove(chatRef);
-                            remove(gameStateRef);
-                            remove(roomRef);
-                            if (this.chatManager) this.chatManager.clearMessages();
-                            if (this.gameInstance) this.gameInstance.cleanup();
-                            this.gameInstance = null;
-                            this.showError('Room abandoned. Not enough players.');
-                            this.goHome();
+                    this._playerDisconnectSkipFirst = true; // Skip initial snapshot
+                    if (!this._appListeners) this._appListeners = [];
+                    const playersListenerFn = (snapshot) => {
+                        if (this._playerDisconnectSkipFirst) {
+                            this._playerDisconnectSkipFirst = false;
                             return;
                         }
-                    });
+                        const players = snapshot.exists() ? snapshot.val() : {};
+                        const connectedPlayers = Object.values(players).filter(p => p.connected !== false);
+
+                        // Only trigger abandon if game is actively playing AND players dropped below 2
+                        if (this.gameInstance && this.gameInstance.gameState === 'playing' && connectedPlayers.length < 2) {
+                            const disconnected = Object.values(players).filter(p => p.connected === false);
+                            const disconnectedNames = disconnected.map(p => p.displayName || 'A classmate').join(', ');
+
+                            console.log('[main.js] Player disconnected during game:', disconnectedNames);
+
+                            if (this.uiManager) {
+                                this.uiManager.showNotification(
+                                    `📚 ${disconnectedNames} has left the classroom. Class dismissed!`,
+                                    'error', 4000
+                                );
+                            }
+
+                            setTimeout(() => {
+                                this.goHome();
+                            }, 3000);
+                            return;
+                        }
+                    };
+                    onValue(playersRef, playersListenerFn);
+                    this._appListeners.push({ refObj: playersRef, listener: playersListenerFn });
                 }
 
                 if (!this._gameStateListenerAdded) {
                     this._gameStateListenerAdded = true;
-                    onValue(gameStateRef, (snapshot) => {
+                    if (!this._appListeners) this._appListeners = [];
+                    const gameStateListenerFn = (snapshot) => {
                         const updatedGameState = snapshot.exists() ? snapshot.val() : null;
-                        // If this is a new match and there are old lines/chat, clear them
-                        if (updatedGameState && Array.isArray(updatedGameState.lines) && updatedGameState.lines.length > 0 && updatedGameState.gameState === 'waiting') {
-                            set(gameStateRef, {
-                                lines: [],
-                                lineOwners: {},
-                                boxes: [],
-                                players: updatedGameState.players || [],
-                                currentPlayer: 0,
-                                gridSize: updatedGameState.gridSize || gridSize,
-                                gameState: 'waiting'
-                            });
-                            remove(chatRef);
-                            if (this.chatManager) this.chatManager.clearMessages();
-                        }
-                        console.log('[main.js] Updated gameState:', updatedGameState);
-                        if (!this.gameInstance && updatedGameState && updatedGameState.players && updatedGameState.lines) {
-                            const playersArr = updatedGameState.players.map((p, idx) => ({
+                        if (!updatedGameState) return;
+
+                        if (!this.gameInstance && updatedGameState.players && updatedGameState.gameState === 'playing') {
+                            const playersArr = (Array.isArray(updatedGameState.players) ? updatedGameState.players : Object.values(updatedGameState.players)).map((p, idx) => ({
                                 id: idx + 1,
                                 displayName: p.displayName || p.name || `Player ${idx + 1}`,
                                 identity: p.identity,
@@ -1443,15 +1523,17 @@ class DotsAndBoxesApp {
                             }));
                             const gs = updatedGameState.gridSize || gridSize;
                             this.initializeGameInstance(roomStatus, updatedGameState, playersArr, gs);
-                        } else if (this.gameInstance) {
+                        } else if (this.gameInstance && updatedGameState) {
                             this.gameInstance.handleNetworkUpdate(updatedGameState);
-                            if (updatedGameState && (updatedGameState.isRematch === true || updatedGameState.reset === true)) {
+                            if (updatedGameState.isRematch === true || updatedGameState.reset === true) {
                                 if (this.chatManager) {
                                     this.chatManager.clearMessages();
                                 }
                             }
                         }
-                    });
+                    };
+                    onValue(gameStateRef, gameStateListenerFn);
+                    this._appListeners.push({ refObj: gameStateRef, listener: gameStateListenerFn });
                 }
 
                 // Fetch initial players and game state
@@ -1475,7 +1557,10 @@ class DotsAndBoxesApp {
                     const gameState = gameStateSnap.exists() ? gameStateSnap.val() : {};
                     console.log('[main.js] Initial gameState:', gameState);
 
-                    this.initializeGameInstance(roomStatus, gameState, playersArr, gridSize);
+                    // Only initialize if game state indicates 'playing'
+                    if (gameState && gameState.gameState === 'playing') {
+                        this.initializeGameInstance(roomStatus, gameState, playersArr, gridSize);
+                    }
                 } catch (error) {
                     console.error('[main.js] Error fetching room data:', error);
                 }
@@ -1522,7 +1607,8 @@ class DotsAndBoxesApp {
     }
 
     bindChatDrawer() {
-        document.getElementById('mobileChatBtn')?.addEventListener('click', () => {
+        document.getElementById('mobileChatBtn')?.addEventListener('click', (e) => {
+            e.stopPropagation();
             this.playSound('click');
             this.toggleMobileDrawer('mobileChatDrawer');
             this.updateChatDrawer();
