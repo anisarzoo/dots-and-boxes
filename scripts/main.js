@@ -1298,12 +1298,13 @@ class DotsAndBoxesApp {
                     if (this.networkManager && this.networkManager.isHost) {
                         await rematchMgr.confirmRematch();
                     }
-                    // All clients: destroy old game instance so gameState listener re-creates it
+                    // All clients: destroy old game instance so room listener re-creates it
                     if (this.gameInstance) {
                         this.gameInstance.cleanup();
                         this.gameInstance = null;
                     }
-                    this.showScreen('gameScreen');
+                    // The room listener will detect status='playing' + gameInstance=null
+                    // and call startNetworkGame() to create a fresh game
                 });
 
                 console.log('[App] Requesting rematch from RematchManager');
@@ -1313,18 +1314,17 @@ class DotsAndBoxesApp {
                     // This client was the last to request — immediately confirm & reset
                     console.log('[App] This client triggered all-ready — confirming rematch');
                     await rematchMgr.confirmRematch();
-                    // Destroy old game instance so the gameState listener creates a fresh one
+                    // Destroy old game instance so the room listener creates a fresh one
                     if (this.gameInstance) {
                         this.gameInstance.cleanup();
                         this.gameInstance = null;
                     }
-                    this.showScreen('gameScreen');
+                    // The room listener will call startNetworkGame()
                 } else {
-                    // Still waiting for other players
+                    // Still waiting for other players — stay on current screen
                     console.log('[App] Waiting for other players to request rematch');
-                    this.showScreen('gameScreen');
                     if (this.uiManager) {
-                        this.uiManager.showNotification('⏳ Waiting for other classmates...', 'info', 5000);
+                        this.uiManager.showNotification('⏳ Waiting for other classmates to rematch...', 'info', 10000);
                     }
                 }
             }

@@ -389,8 +389,8 @@ export class NetworkManager {
 
                     // Status Update
                     if (roomData.status === 'playing') {
-                        // Check if we haven't started yet visually
-                        if (this.app.currentScreen !== 'gameScreen') {
+                        // Start if we haven't yet or if game was destroyed (rematch)
+                        if (this.app.currentScreen !== 'gameScreen' || !this.app.gameInstance) {
                             this.app.startNetworkGame();
                         }
                     }
@@ -450,8 +450,12 @@ export class NetworkManager {
                 const opponent = waitingQueue[0];
                 const roomCode = this.generateRoomCode();
 
-                // Create room
-                await this.createQuickMatchRoom(roomCode, playerName, opponent.name, gridSize);
+                // Generate identities ONCE and pass them through
+                const hostIdentity = this.generateIdentity(playerName);
+                const opponentIdentity = this.generateIdentity(opponent.name);
+
+                // Create room with consistent identities
+                await this.createQuickMatchRoom(roomCode, playerName, opponent.name, gridSize, hostIdentity, opponentIdentity);
 
                 // Update opponent queue entry
                 await this.supabase
@@ -461,6 +465,13 @@ export class NetworkManager {
 
                 this.currentRoom = roomCode;
                 this.isHost = true;
+                // Set playerData with the SAME identity used in room creation
+                this.playerData = {
+                    displayName: playerName,
+                    identity: hostIdentity,
+                    isHost: true,
+                    connected: true
+                };
                 this.setupRoomListeners(roomCode);
 
                 // Set game status to playing
@@ -510,6 +521,23 @@ export class NetworkManager {
                         // Join
                         this.currentRoom = data.room_code;
                         this.isHost = false;
+
+                        // Fetch room data to get our playerData identity
+                        try {
+                            const { data: roomData } = await this.supabase
+                                .from('rooms')
+                                .select('players')
+                                .eq('code', data.room_code)
+                                .single();
+                            if (roomData && roomData.players) {
+                                const playerName = this.app.getPlayerName();
+                                const sanitizedName = this.sanitizeKey(playerName);
+                                if (roomData.players[sanitizedName]) {
+                                    this.playerData = roomData.players[sanitizedName];
+                                }
+                            }
+                        } catch (e) { console.warn('[network] Could not fetch playerData for QM', e); }
+
                         this.setupRoomListeners(data.room_code);
                         this.app.handleQuickMatchFound();
                     }
@@ -525,9 +553,9 @@ export class NetworkManager {
         this.quickMatchQueueId = null;
     }
 
-    async createQuickMatchRoom(roomCode, player1, player2, gridSize = 5) {
-        const identity1 = this.generateIdentity(player1);
-        const identity2 = this.generateIdentity(player2);
+    async createQuickMatchRoom(roomCode, player1, player2, gridSize = 5, identity1 = null, identity2 = null) {
+        if (!identity1) identity1 = this.generateIdentity(player1);
+        if (!identity2) identity2 = this.generateIdentity(player2);
 
         const players = {
             [this.sanitizeKey(player1)]: { displayName: player1, identity: identity1, isHost: true, joinedAt: new Date().toISOString(), connected: true },
