@@ -98,15 +98,13 @@
 
     .home-container {
         padding: 10px 15px;
-        justify-content: flex-start;
-        padding-top: 2.5vh;
         min-height: 100vh;
         box-sizing: border-box;
     }
 
     .game-title {
         font-size: 1.8rem;
-        margin-top: 30px;
+        margin-top: 2rem;
         margin-bottom: 0.2rem;
     }
 
@@ -205,13 +203,12 @@
         padding: 0 2vw;
         gap: 0.7rem;
         min-height: 100vh;
-        justify-content: flex-start;
     }
 
     .game-title {
         font-size: 2.2rem;
         color: #2c3e50;
-        margin-top: 30px;
+        margin-top: 3rem;
         margin-bottom: 0.2rem;
         text-align: center;
         font-weight: 800;

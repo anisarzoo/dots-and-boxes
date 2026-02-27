@@ -38,16 +38,30 @@
 }
 
 .footer-privacy {
-    position: static;
-    margin-top: 20px;
+    position: fixed;
+    bottom: 0;
+    left: 0;
     width: 100%;
     background: transparent;
     text-align: center;
-    padding: 15px 0;
-    box-shadow: none;
-    border-top: none;
+    padding: 20px 0;
+    z-index: 1050;
+    pointer-events: none;
+    display: flex;
+    justify-content: center;
+    gap: 10px;
 }
 
+.footer-privacy .privacy-btn {
+    pointer-events: auto;
+}
+
+/* Show footer ONLY on home screen */
+#homeScreen.active~.footer-privacy {
+    display: flex !important;
+}
+
+/* Base styles for the footer buttons */
 .footer-privacy .privacy-btn {
     font-size: 1rem;
     padding: 8px 16px;
@@ -251,18 +265,17 @@ button:disabled {
     flex-direction: column;
     align-items: center;
     justify-content: flex-start;
-    /* Changed from center to prevent top clipping on overflow */
-    padding-top: 2.5vh;
-    padding-bottom: 2.5vh;
+    padding-top: 1vh;
+    padding-bottom: 80px;
+    /* Space for fixed footer */
     min-height: 100vh;
     height: auto;
-    min-width: 0;
     min-width: 0;
     width: 100vw;
     max-width: 100vw;
     box-sizing: border-box;
     padding: 10px 0;
-    gap: 0.5rem;
+    gap: 0;
     background: none;
     overflow-y: auto;
     overflow-x: hidden;
@@ -270,8 +283,7 @@ button:disabled {
 
 .game-title {
     font-size: clamp(2rem, 5vw, 3.5rem);
-    margin-top: 60px;
-    /* Pushes content down on home screen */
+    margin-top: 4rem;
     margin-bottom: 0.5rem;
     color: #2c3e50;
     text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
@@ -2104,7 +2116,7 @@ body.theme-greenboard .current-turn-mobile {
 /* Desktop global chat left panel */
 .desktop-global-chat-panel {
     position: fixed;
-    left: 20px;
+    right: 20px;
     top: 80px;
     bottom: 20px;
     width: 300px;
@@ -2124,7 +2136,7 @@ body.theme-greenboard .current-turn-mobile {
 @media (max-width: 1250px) {
     .desktop-global-chat-panel {
         width: 260px;
-        left: 10px;
+        right: 10px;
     }
 }
 

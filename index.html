@@ -134,25 +134,16 @@
     <!-- Home Screen -->
     <div id="homeScreen" class="screen active">
         <div class="home-container">
-            <h1 class="game-title" style="display: flex; align-items: center; justify-content: center; gap: 15px;">
-                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"
-                    stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
-                    <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
-                </svg>
+            <h1 class="game-title">
                 Dots and Boxes Classroom
-                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"
-                    stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
-                    <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
-                </svg>
             </h1>
             <div class="name-input-container">
                 <div style="position: relative;">
                     <div id="googleSignInContainer" style="margin-bottom:16px;text-align:center;">
                         <button id="googleSignInBtn" class="google-signin-btn">
                             <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google"
-                                style="width:22px;height:22px;vertical-align:middle;"> Sign in with Google
+                                style="width:22px;height:22px;vertical-align:middle;"> Sign in with
+                            Google
                         </button>
                         <div id="signedInUserInfo" style="display:none;margin-top:10px;text-align:center;">
                             <img id="userPhoto" src="" alt="User Photo"
@@ -225,6 +216,12 @@
                     <div class="btn-desc">Adjust game options</div>
                 </button>
             </div>
+
+            <!-- Persistent Footer for Privacy Policy and Terms of Service -->
+            <footer class="footer-privacy">
+                <a href="privacy.html" class="privacy-btn">Privacy Policy</a>
+                <a href="terms.html" class="privacy-btn">Terms of Service</a>
+            </footer>
             <!-- Desktop: Global Chat on Left Side -->
             <div class="desktop-global-chat-panel">
                 <div class="global-chat-header"
@@ -301,7 +298,7 @@
 
             <!-- Mobile: Drawer Arrow Key for Global Chat (edge panel version is already present above) -->
             <div class="mobile-global-chat-drawer hidden" id="mobileGlobalChatDrawer"
-                style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1001; display: none;">
+                style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 2000; display: none;">
                 <div
                     style="position: absolute; bottom: 0; left: 0; right: 0; background: var(--surface-bg); border-top-left-radius: 20px; border-top-right-radius: 20px; max-height: 70vh; display: flex; flex-direction: column;">
                     <div
@@ -340,12 +337,6 @@
                 </div>
             </div>
 
-            <!-- Privacy and Terms links moved to persistent footer -->
-            <!-- Persistent Footer for Privacy Policy and Terms of Service -->
-            <footer class="footer-privacy">
-                <a href="privacy.html" class="privacy-btn">Privacy Policy</a>
-                <a href="terms.html" class="privacy-btn">Terms of Service</a>
-            </footer>
         </div>
     </div>
 
@@ -1086,8 +1077,9 @@
     </audio>
 
     <!-- Scripts -->
+
     <script type="module" src="scripts/supabase-config.js"></script>
-    <script type="module" src="scripts/global-chat-enhanced.js"></script>
+    <script type="module" src="scripts/global-chat.js"></script>
     <script type="module" src="scripts/network.js"></script>
     <script type="module" src="scripts/ui.js"></script>
     <script type="module" src="scripts/chat.js"></script>

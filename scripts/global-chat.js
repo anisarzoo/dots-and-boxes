@@ -1,4 +1,4 @@
-// scripts/global-chat-enhanced.js
+// scripts/global-chat.js
 import { supabase } from './supabase-config.js';
 
 class GlobalChatManager {
@@ -249,7 +249,7 @@ class GlobalChatManager {
         if (this.mobileDrawer) {
             this.mobileDrawer.classList.remove('hidden');
             this.mobileDrawer.style.display = 'block';
-            this.mobileDrawer.style.zIndex = '1001';
+            this.mobileDrawer.style.zIndex = '2000';
             document.body.style.overflow = 'hidden';
         }
     }
