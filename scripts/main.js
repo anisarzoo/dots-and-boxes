@@ -65,7 +65,7 @@ class DotsAndBoxesApp {
 
                 // Supabase puts google metadata in user_metadata
                 const meta = user.user_metadata || {};
-                const dName = meta.full_name || user.email || 'Signed in';
+                const dName = meta.full_name || 'Signed in';
                 if (userNameDisplay) userNameDisplay.textContent = dName;
 
                 if (userPhoto) {
@@ -110,7 +110,7 @@ class DotsAndBoxesApp {
                 e.preventDefault();
                 const { error } = await supabase.auth.signInWithOAuth({ provider: 'google' });
                 if (error) {
-                    console.error('Google sign-in failed:', error);
+                    // console.error('Google sign-in failed:', error);
                     alert('Google sign-in failed: ' + error.message);
                 }
             }
@@ -131,7 +131,7 @@ class DotsAndBoxesApp {
         }
         const meta = user.user_metadata || {};
         this.signedInUser = {
-            displayName: meta.full_name || user.email || 'Player',
+            displayName: meta.full_name || 'Player',
             uid: user.id,
             photoURL: meta.avatar_url || null
         };
@@ -306,7 +306,7 @@ class DotsAndBoxesApp {
     toggleFullscreen() {
         if (!document.fullscreenElement) {
             document.documentElement.requestFullscreen().catch(err => {
-                console.error(`Error attempting to enable full-screen mode: ${err.message}`);
+                // console.error(`Error attempting to enable full-screen mode: ${err.message}`);
             });
         } else {
             if (document.exitFullscreen) {
@@ -787,13 +787,13 @@ class DotsAndBoxesApp {
             this.showError('You must sign in with Google to play online.');
             return;
         }
-        console.log('createRoom method called');
+        // console.log('createRoom method called');
         const playerCount = parseInt(document.querySelector('#createRoomScreen .count-btn.active')?.dataset.count) || 2;
         const gridSize = parseInt(document.querySelector('#createRoomScreen .size-btn.active')?.dataset.size);
         const finalGridSize = gridSize ? gridSize : 5;
-        console.log('Creating room with:', { playerCount, gridSize });
+        // console.log('Creating room with:', { playerCount, gridSize });
         if (!this.networkManager) {
-            console.error('NetworkManager not initialized');
+            // console.error('NetworkManager not initialized');
             return;
         }
         // Store maxPlayers for waiting text
@@ -811,7 +811,7 @@ class DotsAndBoxesApp {
         try {
             // Pass hostPlayer to createRoom if needed (update your networkManager if required)
             const roomData = await this.networkManager.createRoom(playerCount, finalGridSize, hostPlayer);
-            console.log('Room creation result:', roomData);
+            // console.log('Room creation result:', roomData);
             if (roomData) {
                 // After room is created, if host, write initial game state to database
                 if (this.gameInstance && this.networkManager.isRoomHost()) {
@@ -849,13 +849,13 @@ class DotsAndBoxesApp {
                         startRoomGameBtn.classList.remove('hidden');
                     }
                 } else {
-                    console.error('roomCreated element not found');
+                    // console.error('roomCreated element not found');
                 }
             } else {
-                console.error('Room creation failed');
+                // console.error('Room creation failed');
             }
         } catch (error) {
-            console.error('Error creating room:', error);
+            // console.error('Error creating room:', error);
         }
     }
 
@@ -985,14 +985,14 @@ class DotsAndBoxesApp {
             // Count occupied seats in the lobby grid (the actual DOM element)
             const lobbyGrid = document.getElementById('lobbySeatingGrid');
             let playerCount = lobbyGrid ? lobbyGrid.querySelectorAll('.student-seat.occupied').length : 0;
-            console.log('[main.js] startRoomGame — playerCount from lobby:', playerCount);
+            // console.log('[main.js] startRoomGame — playerCount from lobby:', playerCount);
             if (playerCount < 2) {
                 this.showError('At least 2 players are required to start the game. Invite a friend to join your room!');
                 return;
             }
             this.networkManager.startGame();
         } else {
-            console.warn('[main.js] startRoomGame called but not host or no networkManager');
+            // console.warn('[main.js] startRoomGame called but not host or no networkManager');
         }
     }
 
@@ -1258,7 +1258,7 @@ class DotsAndBoxesApp {
 
     async requestRematch() {
         if (!this.gameInstance) {
-            console.error('[App] No game instance for rematch');
+            // console.error('[App] No game instance for rematch');
             return;
         }
 
@@ -1293,7 +1293,7 @@ class DotsAndBoxesApp {
 
                 // Set up a listener that fires on ALL clients when rematchReady becomes true.
                 rematchMgr.setupRematchListener(async () => {
-                    console.log('[App] rematchReady fired — all clients auto-starting rematch');
+                    // console.log('[App] rematchReady fired — all clients auto-starting rematch');
                     // Host performs the DB reset
                     if (this.networkManager && this.networkManager.isHost) {
                         await rematchMgr.confirmRematch();
@@ -1307,12 +1307,12 @@ class DotsAndBoxesApp {
                     // and call startNetworkGame() to create a fresh game
                 });
 
-                console.log('[App] Requesting rematch from RematchManager');
+                // console.log('[App] Requesting rematch from RematchManager');
                 const requested = await rematchMgr.requestRematch();
 
                 if (requested) {
                     // This client was the last to request — immediately confirm & reset
-                    console.log('[App] This client triggered all-ready — confirming rematch');
+                    // console.log('[App] This client triggered all-ready — confirming rematch');
                     await rematchMgr.confirmRematch();
                     // Destroy old game instance so the room listener creates a fresh one
                     if (this.gameInstance) {
@@ -1322,14 +1322,14 @@ class DotsAndBoxesApp {
                     // The room listener will call startNetworkGame()
                 } else {
                     // Still waiting for other players — stay on current screen
-                    console.log('[App] Waiting for other players to request rematch');
+                    // console.log('[App] Waiting for other players to request rematch');
                     if (this.uiManager) {
                         this.uiManager.showNotification('⏳ Waiting for other classmates to rematch...', 'info', 10000);
                     }
                 }
             }
         } catch (error) {
-            console.error('[App] Error during rematch:', error);
+            // console.error('[App] Error during rematch:', error);
             this.showError('Rematch failed. Please try again.');
         }
     }
@@ -1361,7 +1361,7 @@ class DotsAndBoxesApp {
             if (connectedPlayers.length < 2 && players.length >= 2) {
                 const disconnected = players.filter(p => p.connected === false);
                 const disconnectedNames = disconnected.map(p => p.displayName || 'A classmate').join(', ');
-                console.log('[main.js] Player disconnected during game:', disconnectedNames);
+                // console.log('[main.js] Player disconnected during game:', disconnectedNames);
                 if (this.uiManager) {
                     this.uiManager.showNotification(
                         `📚 ${disconnectedNames} has left the classroom. Class dismissed!`,
@@ -1428,10 +1428,10 @@ class DotsAndBoxesApp {
     }
 
     async startNetworkGame() {
-        console.log('[main.js] startNetworkGame called');
+        // console.log('[main.js] startNetworkGame called');
         const roomCode = this.networkManager.currentRoom;
         if (!roomCode) {
-            console.error('[main.js] No active room');
+            // console.error('[main.js] No active room');
             return;
         }
 
@@ -1469,7 +1469,7 @@ class DotsAndBoxesApp {
                 this.initializeGameInstance({ room: roomCode }, gameState, playersArr, gridSize);
             }
         } catch (e) {
-            console.error('[main.js] Error starting network game:', e);
+            // console.error('[main.js] Error starting network game:', e);
             this.showError('Failed to load game data. Please try again.');
         }
     }
@@ -1496,7 +1496,7 @@ class DotsAndBoxesApp {
 
     handleQuickMatchFound() {
         // Debug log to check if this is called
-        console.log('[main.js] handleQuickMatchFound called');
+        // console.log('[main.js] handleQuickMatchFound called');
         // Called when quick match opponent is found
         this.startNetworkGame();
     }

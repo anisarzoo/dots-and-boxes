@@ -18,14 +18,18 @@ class GlobalChatManager {
         this.chatInput = document.getElementById('globalChatInput');
         this.chatSendBtn = document.getElementById('globalChatSendBtn');
         this.chatInputRow = document.getElementById('globalChatInputRow');
+        const setupSigninClick = (element) => {
+            if (element) {
+                element.style.cursor = 'pointer';
+                element.onclick = () => {
+                    const signInBtn = document.getElementById('googleSignInBtn');
+                    if (signInBtn) signInBtn.click();
+                };
+            }
+        };
+
         this.chatSigninMessage = document.getElementById('globalChatSigninMessage');
-        if (this.chatSigninMessage) {
-            this.chatSigninMessage.style.cursor = 'pointer';
-            this.chatSigninMessage.onclick = () => {
-                const signInBtn = document.getElementById('googleSignInBtn');
-                if (signInBtn) signInBtn.click();
-            };
-        }
+        setupSigninClick(this.chatSigninMessage);
         this.onlineUsersCount = document.getElementById('onlineUsersCount');
 
         // DOM elements - Mobile
@@ -36,13 +40,7 @@ class GlobalChatManager {
         this.mobileSendBtn = document.getElementById('mobileGlobalChatSendBtn');
         this.mobileInputRow = document.getElementById('mobileGlobalChatInputRow');
         this.mobileSigninMessage = document.getElementById('mobileGlobalChatSigninMessage');
-        if (this.mobileSigninMessage) {
-            this.mobileSigninMessage.style.cursor = 'pointer';
-            this.mobileSigninMessage.onclick = () => {
-                const signInBtn = document.getElementById('googleSignInBtn');
-                if (signInBtn) signInBtn.click();
-            };
-        }
+        setupSigninClick(this.mobileSigninMessage);
         this.mobileOnlineUsersCount = document.getElementById('mobileOnlineUsersCount');
         this.mobileCloseBtn = document.getElementById('closeMobileGlobalChat');
 
@@ -139,9 +137,70 @@ class GlobalChatManager {
             });
         }
         if (this.mobileDrawerKey) {
-            this.mobileDrawerKey.addEventListener('click', () => this.showMobileDrawer());
-            var keyBtn = this.mobileDrawerKey.querySelector('button');
-            if (keyBtn) keyBtn.addEventListener('click', () => this.showMobileDrawer());
+            // Draggable logic
+            let isDragging = false;
+            let startY = 0;
+            let initialTop = 0;
+            this.wasDragged = false;
+
+            const onDragStart = (e) => {
+                isDragging = true;
+                startY = (e.touches ? e.touches[0].clientY : e.clientY);
+                initialTop = this.mobileDrawerKey.offsetTop;
+                this.mobileDrawerKey.style.transition = 'none';
+                this.dragStartTime = Date.now();
+                this.wasDragged = false;
+            };
+
+            const onDragMove = (e) => {
+                if (!isDragging) return;
+                const currentY = (e.touches ? e.touches[0].clientY : e.clientY);
+                const deltaY = currentY - startY;
+                let newTop = initialTop + deltaY;
+
+                // Constrain within vertical bounds
+                const maxTop = window.innerHeight - this.mobileDrawerKey.offsetHeight - 20;
+                const minTop = 20;
+                newTop = Math.max(minTop, Math.min(newTop, maxTop));
+
+                this.mobileDrawerKey.style.top = `${newTop}px`;
+                this.mobileDrawerKey.style.bottom = 'auto';
+
+                if (Math.abs(deltaY) > 5) this.wasDragged = true;
+            };
+
+            const onDragEnd = () => {
+                if (!isDragging) return;
+                isDragging = false;
+                this.mobileDrawerKey.style.transition = 'all 0.3s ease';
+            };
+
+            this.mobileDrawerKey.addEventListener('mousedown', onDragStart);
+            window.addEventListener('mousemove', onDragMove);
+            window.addEventListener('mouseup', onDragEnd);
+
+            this.mobileDrawerKey.addEventListener('touchstart', onDragStart, { passive: false });
+            window.addEventListener('touchmove', onDragMove, { passive: false });
+            window.addEventListener('touchend', onDragEnd);
+
+            this.mobileDrawerKey.addEventListener('click', (e) => {
+                if (this.wasDragged) {
+                    e.stopImmediatePropagation();
+                    return;
+                }
+                this.showMobileDrawer();
+            });
+
+            const keyBtn = this.mobileDrawerKey.querySelector('button');
+            if (keyBtn) {
+                keyBtn.addEventListener('click', (e) => {
+                    if (this.wasDragged) {
+                        e.stopImmediatePropagation();
+                        return;
+                    }
+                    this.showMobileDrawer();
+                });
+            }
         }
         if (this.mobileCloseBtn) this.mobileCloseBtn.addEventListener('click', () => this.hideMobileDrawer());
         if (this.mobileDrawer) {
@@ -204,7 +263,7 @@ class GlobalChatManager {
     }
 
     handleResponsive() {
-        const isMobile = window.innerWidth <= 1100;
+        const isMobile = window.innerWidth < 1250;
         if (isMobile) {
             if (this.mobileDrawerKey) this.mobileDrawerKey.style.display = 'block';
             if (this.chatContainer) this.chatContainer.style.display = 'none';
@@ -249,11 +308,11 @@ class GlobalChatManager {
             await supabase.from('global_chat').insert({
                 text: messageText,
                 user_id: this.currentUser.uid,
-                user_name: this.currentUser.displayName || this.currentUser.email || 'Anonymous',
+                user_name: this.currentUser.displayName || 'Anonymous',
                 user_photo: this.currentUser.photoURL || ''
             });
         } catch (error) {
-            console.error('Error sending message:', error);
+            // console.error('Error sending message:', error);
         }
     }
 

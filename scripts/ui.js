@@ -373,7 +373,7 @@ export class UIManager {
             const observer = new PerformanceObserver((list) => {
                 list.getEntries().forEach((entry) => {
                     if (entry.entryType === 'measure' && entry.duration > 16) {
-                        console.warn(`Slow operation detected: ${entry.name} took ${entry.duration}ms`);
+                        // console.warn(`Slow operation detected: ${entry.name} took ${entry.duration}ms`);
                     }
                 });
             });

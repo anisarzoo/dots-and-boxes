@@ -3,7 +3,7 @@ export class DotsAndBoxesGame {
     // Legacy rematch function for local games
     // For networked games, use RematchManager instead
     rematch() {
-        console.log('[Game] Rematch called - delegating to RematchManager for network games');
+        // console.log('[Game] Rematch called - delegating to RematchManager for network games');
 
         // For local games, reset directly
         if (this.isLocal) {
@@ -134,7 +134,7 @@ export class DotsAndBoxesGame {
 
         // Debug log to check if canvas is found and its ID
         if (!this.canvas) {
-            console.error(`[DotsAndBoxesGame] Canvas not found! Expected ID: ${canvasId}`);
+            // console.error(`[DotsAndBoxesGame] Canvas not found! Expected ID: ${canvasId}`);
             return;
         }
 
@@ -162,7 +162,7 @@ export class DotsAndBoxesGame {
         // Get and configure context
         this.ctx = this.canvas.getContext('2d');
         if (!this.ctx) {
-            console.error('[DotsAndBoxesGame] Failed to get canvas context');
+            // console.error('[DotsAndBoxesGame] Failed to get canvas context');
             return;
         }
 
@@ -186,7 +186,7 @@ export class DotsAndBoxesGame {
         this.ctx.lineCap = 'round';
         this.ctx.lineJoin = 'round';
 
-        console.log(`[DotsAndBoxesGame] Canvas setup: ${containerSize}px, DPR: ${dpr}, Spacing: ${this.gridSpacing}px`);
+        // console.log(`[DotsAndBoxesGame] Canvas setup: ${containerSize}px, DPR: ${dpr}, Spacing: ${this.gridSpacing}px`);
     }
 
     initializeGrid() {
@@ -556,7 +556,7 @@ export class DotsAndBoxesGame {
         if (this._animationSafetyTimeout) clearTimeout(this._animationSafetyTimeout);
         this._animationSafetyTimeout = setTimeout(() => {
             if (this.isAnimating) {
-                console.warn('[Game] Animation safety timeout triggered — releasing lock');
+                // console.warn('[Game] Animation safety timeout triggered — releasing lock');
                 this.boxAnimationState = null;
                 this.animationQueue = [];
                 this.isAnimating = false;
@@ -759,7 +759,7 @@ export class DotsAndBoxesGame {
 
     updateScoreboard() {
         if (!this.players || !Array.isArray(this.players)) {
-            console.warn("updateScoreboard: players is not defined or not an array", this.players);
+            // console.warn("updateScoreboard: players is not defined or not an array", this.players);
             return;
         }
 
@@ -1108,7 +1108,7 @@ export class DotsAndBoxesGame {
 
     // Network multiplayer methods
     receiveMove(moveData) {
-        console.log('Move received from network:', moveData);
+        // console.log('Move received from network:', moveData);
         if (this.isLocal) return;
 
         this.lines.add(moveData.lineKey);
@@ -1185,7 +1185,7 @@ export class DotsAndBoxesGame {
 
         // Handle rematch: clear visuals and reinit canvas
         if (isRematch) {
-            console.log('[Game] Rematch detected — clearing board');
+            // console.log('[Game] Rematch detected — clearing board');
             this.dotOffsets.clear();
             this.lineSegments.clear();
             this.animationQueue = [];
@@ -1246,7 +1246,7 @@ export class DotsAndBoxesGame {
         const { line, lineKey, currentPlayer, completedBoxes } = moveData;
 
         if (this.lines.has(lineKey)) {
-            console.log('Duplicate move ignored:', lineKey);
+            // console.log('Duplicate move ignored:', lineKey);
             return;
         }
 
@@ -1392,7 +1392,7 @@ export class DotsAndBoxesGame {
         // Mark game as finished
         this.gameState = 'finished';
 
-        console.log('[DotsAndBoxesGame] Cleanup completed');
+        // console.log('[DotsAndBoxesGame] Cleanup completed');
     }
 
     handleResize() {
@@ -1402,11 +1402,11 @@ export class DotsAndBoxesGame {
     }
 
     initializeQuickMatch() {
-        console.log('Initializing Quick Match...');
+        // console.log('Initializing Quick Match...');
         this.networkManager.requestQuickMatch();
 
         this.networkManager.on('gameStart', (gameState) => {
-            console.log('Game started:', gameState);
+            // console.log('Game started:', gameState);
             this.handleNetworkUpdate(gameState);
         });
     }

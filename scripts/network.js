@@ -70,7 +70,7 @@ export class NetworkManager {
                 });
 
             } catch (e) {
-                console.error("Error leaving room", e);
+                // console.error("Error leaving room", e);
             }
         }
 
@@ -148,7 +148,7 @@ export class NetworkManager {
                 inviteLink: `${window.location.origin}${window.location.pathname}#join=${roomCode}`
             };
         } catch (error) {
-            console.error('Error creating room:', error);
+            // console.error('Error creating room:', error);
             this.showError('Failed to create room. Please try again.');
             return null;
         }
@@ -232,7 +232,7 @@ export class NetworkManager {
             this.setupRoomListeners(roomCode);
             return true;
         } catch (error) {
-            console.error('Error joining room:', error);
+            // console.error('Error joining room:', error);
             this.showError('Failed to join room. Please try again.');
             return false;
         }
@@ -263,7 +263,7 @@ export class NetworkManager {
                 }));
 
             if (playersArr.length < 2) {
-                console.warn('[network.js] Not enough players to start game');
+                // console.warn('[network.js] Not enough players to start game');
                 return;
             }
 
@@ -287,7 +287,7 @@ export class NetworkManager {
                 .eq('code', this.currentRoom);
 
         } catch (error) {
-            console.error('Error starting game:', error);
+            // console.error('Error starting game:', error);
         }
     }
 
@@ -310,7 +310,7 @@ export class NetworkManager {
                 .update({ game_state: gameState })
                 .eq('code', this.currentRoom);
         } catch (error) {
-            console.error('Error updating game state:', error);
+            // console.error('Error updating game state:', error);
         }
     }
 
@@ -333,7 +333,7 @@ export class NetworkManager {
                 })
                 .eq('code', this.currentRoom);
         } catch (error) {
-            console.error('Error ending game:', error);
+            // console.error('Error ending game:', error);
         }
     }
 
@@ -350,7 +350,7 @@ export class NetworkManager {
                 message: content.trim()
             });
         } catch (error) {
-            console.error('Error sending chat message:', error);
+            // console.error('Error sending chat message:', error);
         }
     }
 
@@ -497,7 +497,7 @@ export class NetworkManager {
             }
 
         } catch (error) {
-            console.error('Quick match error:', error);
+            // console.error('Quick match error:', error);
             this.showError('Quick match failed.');
             return false;
         }

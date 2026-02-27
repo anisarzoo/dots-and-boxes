@@ -37,12 +37,9 @@
     font-family: inherit;
 }
 
-/* Persistent footer for privacy/terms links */
 .footer-privacy {
     position: static;
-    margin-top: auto;
-    /* Pushes footer to the bottom of the container */
-    padding-top: 20px;
+    margin-top: 20px;
     width: 100%;
     background: transparent;
     text-align: center;
@@ -67,7 +64,43 @@
 }
 
 /* Standardize footer across all screens */
-/* Standardize footer across all screens */
+
+.google-signin-btn {
+    font-size: 1.1rem;
+    padding: 10px 24px;
+    border-radius: 8px;
+    background: #fff;
+    color: #333;
+    box-shadow: 0 2px 8px #0001;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    border: 1px solid #ccc;
+    font-family: inherit;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.google-signin-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px #0002;
+}
+
+.signout-btn {
+    margin-left: 12px;
+    font-size: 0.95rem;
+    padding: 4px 12px;
+    border-radius: 6px;
+    background: #eee;
+    color: #333;
+    border: 1px solid #ccc;
+    cursor: pointer;
+    transition: background 0.2s ease;
+}
+
+.signout-btn:hover {
+    background: #e0e0e0;
+}
 
 /* Notification red dot for mobile chat button */
 .red-dot {
@@ -80,6 +113,35 @@
     border-radius: 50%;
     z-index: 10;
     pointer-events: none;
+}
+
+.mobile-global-chat-key {
+    display: none;
+    position: fixed;
+    top: 15vh;
+    right: 0;
+    z-index: 1000;
+}
+
+.mobile-chat-toggle-btn {
+    width: 48px;
+    height: 48px;
+    border-radius: 24px 0 0 24px;
+    background: var(--accent-color, #3498db);
+    color: white;
+    border: none;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    cursor: pointer;
+    font-size: 1.8rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+}
+
+.mobile-chat-toggle-btn:hover {
+    padding-right: 5px;
+    width: 54px;
 }
 
 /* Main CSS - Dots and Boxes Classroom Edition */
@@ -208,7 +270,7 @@ button:disabled {
 
 .game-title {
     font-size: clamp(2rem, 5vw, 3.5rem);
-    margin-top: auto;
+    margin-top: 60px;
     /* Pushes content down on home screen */
     margin-bottom: 0.5rem;
     color: #2c3e50;
@@ -2041,15 +2103,29 @@ body.theme-greenboard .current-turn-mobile {
 
 /* Desktop global chat left panel */
 .desktop-global-chat-panel {
-    position: absolute;
-    left: 0;
-    top: 0;
-    bottom: 0;
-    width: 320px;
-    max-width: 100vw;
+    position: fixed;
+    left: 20px;
+    top: 80px;
+    bottom: 20px;
+    width: 300px;
     background: transparent;
-    z-index: 10;
-    padding: 32px 0 0 32px;
+    z-index: 100;
+    pointer-events: none;
+    /* Let clicks pass through to background if not on container */
+    display: flex;
+    flex-direction: column;
+}
+
+.desktop-global-chat-panel>* {
+    pointer-events: auto;
+    /* Re-enable for children */
+}
+
+@media (max-width: 1250px) {
+    .desktop-global-chat-panel {
+        width: 260px;
+        left: 10px;
+    }
 }
 
 .global-chat-container {

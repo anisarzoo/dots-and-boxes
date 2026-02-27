@@ -135,13 +135,13 @@
     <div id="homeScreen" class="screen active">
         <div class="home-container">
             <h1 class="game-title" style="display: flex; align-items: center; justify-content: center; gap: 15px;">
-                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4.5"
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"
                     stroke-linecap="round" stroke-linejoin="round">
                     <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
                     <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
                 </svg>
                 Dots and Boxes Classroom
-                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4.5"
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"
                     stroke-linecap="round" stroke-linejoin="round">
                     <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
                     <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
@@ -150,8 +150,7 @@
             <div class="name-input-container">
                 <div style="position: relative;">
                     <div id="googleSignInContainer" style="margin-bottom:16px;text-align:center;">
-                        <button id="googleSignInBtn"
-                            style="font-size:1.1rem;padding:10px 24px;border-radius:8px;background:#fff;color:#333;box-shadow:0 2px 8px #0001;display:inline-flex;align-items:center;gap:10px;cursor:pointer;border:1px solid #ccc;">
+                        <button id="googleSignInBtn" class="google-signin-btn">
                             <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google"
                                 style="width:22px;height:22px;vertical-align:middle;"> Sign in with Google
                         </button>
@@ -159,16 +158,12 @@
                             <img id="userPhoto" src="" alt="User Photo"
                                 style="width:32px;height:32px;border-radius:50%;vertical-align:middle;margin-right:8px;display:none;">
                             <span id="userNameDisplay" style="font-weight:bold;"></span>
-                            <button id="signOutBtn"
-                                style="margin-left:12px;font-size:0.95rem;padding:4px 12px;border-radius:6px;background:#eee;color:#333;border:1px solid #ccc;">Sign
-                                Out</button>
+                            <button id="signOutBtn" class="signout-btn">Sign Out</button>
                         </div>
                     </div>
                     <!-- Mobile: Edge Panel Drawer Arrow Key for Global Chat (aligned with sign-in column) -->
-                    <div class="mobile-global-chat-key" id="mobileGlobalChatKey"
-                        style="display: none; position: fixed; top: 100px; right: 0; z-index: 1000;">
-                        <button
-                            style="width: 48px; height: 48px; border-radius: 24px 0 0 24px; background: var(--accent-color); color: white; border: none; box-shadow: 0 2px 8px rgba(0,0,0,0.2); cursor: pointer; font-size: 2rem; display: flex; align-items: center; justify-content: center;">
+                    <div class="mobile-global-chat-key" id="mobileGlobalChatKey">
+                        <button class="mobile-chat-toggle-btn">
                             &#x226A;
                         </button>
                     </div>
@@ -231,8 +226,7 @@
                 </button>
             </div>
             <!-- Desktop: Global Chat on Left Side -->
-            <div class="desktop-global-chat-panel"
-                style="display: flex; flex-direction: column; align-items: stretch; max-width: 320px; width: 100%; margin-right: 32px;">
+            <div class="desktop-global-chat-panel">
                 <div class="global-chat-header"
                     style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
                     <h3

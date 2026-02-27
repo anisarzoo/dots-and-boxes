@@ -14,7 +14,7 @@ export class RematchManager {
 
     async requestRematch() {
         if (!this.networkManager || !this.networkManager.currentRoom || !this.networkManager.playerData) {
-            console.warn('[RematchManager] Cannot request rematch: missing network data');
+            // console.warn('[RematchManager] Cannot request rematch: missing network data');
             return false;
         }
 
@@ -62,7 +62,7 @@ export class RematchManager {
             return allRequested;
 
         } catch (error) {
-            console.error('[RematchManager] Error requesting rematch:', error);
+            // console.error('[RematchManager] Error requesting rematch:', error);
             this.isProcessing = false;
             return false;
         }
@@ -133,7 +133,7 @@ export class RematchManager {
 
             return true;
         } catch (error) {
-            console.error('[RematchManager] Error confirming rematch:', error);
+            // console.error('[RematchManager] Error confirming rematch:', error);
             return false;
         }
     }
@@ -184,7 +184,7 @@ export class RematchManager {
 
             return true;
         } catch (error) {
-            console.error('[RematchManager] Error resetting game state:', error);
+            // console.error('[RematchManager] Error resetting game state:', error);
             return false;
         }
     }
