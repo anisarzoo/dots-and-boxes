@@ -27,6 +27,7 @@ class GlobalChatManager {
         this.messagesRef = null;
         this.onlineUsersListener = null;
         this.messagesListener = null;
+        this.connectedListener = null;
         
         // DOM elements - Desktop
         this.chatContainer = document.getElementById('globalChatContainer');
@@ -71,7 +72,7 @@ class GlobalChatManager {
         // Set up event listeners
         this.setupEventListeners();
         
-        // Start presence tracking for everyone (guests + signed in)
+        // Start presence tracking (even if not signed in yet)
         this.setupUserPresence();
         
         // Initialize message listening (even for non-authenticated users)
@@ -79,7 +80,7 @@ class GlobalChatManager {
     }
     
     handleAuthStateChange(user) {
-        const authChanged = (!!this.currentUser !== !!user);
+        const oldUid = this.currentUser?.uid;
         this.currentUser = user;
         
         if (user) {
@@ -90,12 +91,33 @@ class GlobalChatManager {
             this.showSigninMessage();
         }
         
-        // Update presence data if auth state changed (to update name/photo)
-        if (authChanged || user) {
-            this.updatePresenceData();
+        // If the user identity changed, update the presence reference
+        if (user?.uid !== oldUid) {
+            this.updatePresenceReference();
         }
         
         this.updateUI();
+    }
+    
+    updatePresenceReference() {
+        // Remove old presence entry if it exists
+        if (this.currentUserPresenceRef) {
+            remove(this.currentUserPresenceRef).catch(() => {});
+            this.currentUserPresenceRef = null;
+        }
+        
+        if (!db) return;
+        
+        // Define new path based on auth status
+        // We use a nested structure: onlineUsers/UID/sessionID
+        // This allows one user to have multiple tabs open.
+        // For guests, we use 'guests/sessionID'
+        const path = this.currentUser 
+            ? `onlineUsers/${this.currentUser.uid}/${this.sessionId}` 
+            : `onlineUsers/guests/${this.sessionId}`;
+            
+        this.currentUserPresenceRef = ref(db, path);
+        this.updatePresenceData();
     }
     
     updatePresenceData() {
@@ -110,7 +132,18 @@ class GlobalChatManager {
             sessionId: this.sessionId
         };
         
-        set(this.currentUserPresenceRef, presenceData);
+        // Set presence and handle potential permission errors gracefully
+        set(this.currentUserPresenceRef, presenceData)
+            .then(() => {
+                onDisconnect(this.currentUserPresenceRef).remove();
+            })
+            .catch((error) => {
+                if (error.code === 'PERMISSION_DENIED') {
+                    console.warn(`Presence tracking denied for path: ${this.currentUserPresenceRef.key}. Only signed-in users may be counted if rules are restrictive.`);
+                } else {
+                    console.error('Presence error:', error);
+                }
+            });
     }
     
     showChatInput() {
@@ -205,31 +238,20 @@ class GlobalChatManager {
     setupUserPresence() {
         if (!db) return;
         
-        // Create presence reference using session ID to handle multiple tabs correctly
         this.onlineUsersRef = ref(db, 'onlineUsers');
-        this.currentUserPresenceRef = ref(db, `onlineUsers/${this.sessionId}`);
         
+        // Initialize the first presence reference
+        this.updatePresenceReference();
+        
+        // Listen for connection changes
         const connectedRef = ref(db, '.info/connected');
-        
-        onValue(connectedRef, (snapshot) => {
+        this.connectedListener = onValue(connectedRef, (snapshot) => {
             if (snapshot.val() === true) {
-                // When we're connected (or reconnected)
-                const presenceData = {
-                    uid: this.currentUser?.uid || 'guest',
-                    displayName: this.currentUser?.displayName || 'Guest',
-                    photoURL: this.currentUser?.photoURL || '',
-                    isOnline: true,
-                    lastSeen: serverTimestamp(),
-                    sessionId: this.sessionId
-                };
-                
-                // Set the presence and ensure it's removed on disconnect
-                onDisconnect(this.currentUserPresenceRef).remove();
-                set(this.currentUserPresenceRef, presenceData);
+                this.updatePresenceData();
             }
         });
         
-        // Listen for online users changes
+        // Listen for online users changes to update the UI count
         this.setupOnlineUsersListener();
     }
     
@@ -242,9 +264,25 @@ class GlobalChatManager {
         }
         
         this.onlineUsersListener = (snapshot) => {
-            const onlineUsers = snapshot.val() || {};
-            const userCount = Object.keys(onlineUsers).length;
-            this.updateOnlineUsersCount(userCount);
+            const data = snapshot.val() || {};
+            let count = 0;
+            
+            // The structure is onlineUsers/UID/sessionID or onlineUsers/guests/sessionID
+            // We need to count all leaves that are session objects
+            
+            const processNode = (node) => {
+                if (typeof node !== 'object' || node === null) return;
+                
+                if (node.sessionId) {
+                    count++;
+                } else {
+                    Object.values(node).forEach(child => processNode(child));
+                }
+            };
+            
+            processNode(data);
+            
+            this.updateOnlineUsersCount(count);
         };
         
         onValue(this.onlineUsersRef, this.onlineUsersListener);
@@ -252,13 +290,19 @@ class GlobalChatManager {
     
     cleanupUserPresence() {
         if (this.currentUserPresenceRef) {
-            remove(this.currentUserPresenceRef);
+            remove(this.currentUserPresenceRef).catch(() => {});
             this.currentUserPresenceRef = null;
         }
         
         if (this.onlineUsersListener && this.onlineUsersRef) {
             off(this.onlineUsersRef, 'value', this.onlineUsersListener);
             this.onlineUsersListener = null;
+        }
+        
+        if (this.connectedListener) {
+            const connectedRef = ref(db, '.info/connected');
+            off(connectedRef, 'value', this.connectedListener);
+            this.connectedListener = null;
         }
         
         this.onlineUsersRef = null;
