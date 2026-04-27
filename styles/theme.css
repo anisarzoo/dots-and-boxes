@@ -116,7 +116,7 @@ body.theme-greenboard {
     --accent-hover: #b8790b;
     --accent-rgb: 200, 134, 13;
     --theme-font: 'Schoolbell', cursive;
-    background: #0d3818;
+    background: #f5f5dc;
 }
 
 /* Whiteboard Theme */
@@ -661,8 +661,8 @@ body.theme-greenboard .home-container {
 }
 
 body.theme-greenboard .game-title {
-    color: #ffffff;
-    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+    color: #2d5016;
+    text-shadow: 2px 2px 4px rgba(255, 255, 255, 0.3);
 }
 
 body.theme-greenboard .mode-btn {
