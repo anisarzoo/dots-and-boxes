@@ -880,7 +880,8 @@ export class NetworkManager {
                 player: this.app.getPlayerName(),
                 identity: this.playerData?.identity || '',
                 message: content.trim(),
-                timestamp: serverTimestamp()
+                timestamp: serverTimestamp(),
+                clientId: message.clientId || ''
             });
         } catch (error) {
             console.error('Error sending chat message:', error);

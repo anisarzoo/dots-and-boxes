@@ -56,9 +56,7 @@ export class ChatManager {
         // Register with network manager
         if (this.app.networkManager) {
             this.app.networkManager.on('chat', (data) => {
-                if (data.clientId !== this.clientId) {
-                    this.addMessage(data);
-                }
+                this.addMessage(data);
             });
         }
     }
