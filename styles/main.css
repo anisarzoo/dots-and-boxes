@@ -129,58 +129,31 @@
     pointer-events: none;
 }
 
-.mobile-global-chat-key {
+/* Mobile Global Chat Button (Menu Integrated) */
+.mobile-only-btn {
     display: none;
-    position: fixed;
-    bottom: 24px;
-    right: 20px;
-    z-index: 1000;
-    pointer-events: auto;
 }
 
-.mobile-chat-toggle-btn {
-    width: 60px;
-    height: 60px;
-    border-radius: 50%;
-    background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
-    color: white;
-    border: none;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.35);
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    position: relative;
-    padding: 0;
+@media (max-width: 1249px) {
+    .mobile-only-btn {
+        display: flex;
+    }
 }
 
-.mobile-chat-toggle-btn .btn-icon {
-    font-size: 0; /* Hide text if any, we'll use SVG */
-    display: flex;
-    align-items: center;
-    justify-content: center;
+.mode-btn {
+    position: relative; /* For red-dot positioning */
 }
 
-.mobile-chat-toggle-btn:hover {
-    transform: scale(1.1);
-    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.45);
-}
-
-.mobile-chat-toggle-btn:active {
-    transform: scale(0.95);
-}
-
-.mobile-chat-toggle-btn .red-dot {
+.mode-btn .red-dot {
     position: absolute;
-    top: 0;
-    right: 0;
-    width: 14px;
-    height: 14px;
+    top: 8px;
+    right: 8px;
+    width: 12px;
+    height: 12px;
     background: #e74c3c;
     border: 2px solid white;
     border-radius: 50%;
-    z-index: 2;
+    z-index: 5;
 }
 
 /* Main CSS - Dots and Boxes Classroom Edition */

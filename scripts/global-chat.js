@@ -48,6 +48,8 @@ class GlobalChatManager {
         this.mobileSigninMessage = document.getElementById('mobileGlobalChatSigninMessage');
         this.mobileOnlineUsersCount = document.getElementById('mobileOnlineUsersCount');
         this.mobileCloseBtn = document.getElementById('closeMobileGlobalChat');
+        this.mobileNotificationDot = document.getElementById('mobileChatNotification');
+        this.isDrawerOpen = false;
 
         const setupSigninClick = (element) => {
             if (!element) return;
@@ -324,6 +326,12 @@ class GlobalChatManager {
             this.mobileDrawer.style.display = 'block';
             this.mobileDrawer.style.zIndex = '2000';
             document.body.style.overflow = 'hidden';
+            this.isDrawerOpen = true;
+
+            // Hide notification dot when opening drawer
+            if (this.mobileNotificationDot) {
+                this.mobileNotificationDot.classList.add('hidden');
+            }
         }
     }
     
@@ -332,6 +340,7 @@ class GlobalChatManager {
             this.mobileDrawer.classList.add('hidden');
             this.mobileDrawer.style.display = 'none';
             document.body.style.overflow = '';
+            this.isDrawerOpen = false;
         }
     }
     
@@ -339,14 +348,14 @@ class GlobalChatManager {
         const isMobile = window.innerWidth < 1250;
         
         if (isMobile) {
-            // Show mobile drawer key, hide desktop chat on mobile screens
-            if (this.mobileDrawerKey) this.mobileDrawerKey.style.display = 'block';
+            // Show mobile menu button, hide desktop chat
+            if (this.mobileDrawerKey) this.mobileDrawerKey.style.display = 'flex';
             if (this.chatContainer) this.chatContainer.style.display = 'none';
         } else {
-            // Hide mobile drawer key, show desktop chat on larger screens
+            // Hide mobile menu button, show desktop chat
             if (this.mobileDrawerKey) this.mobileDrawerKey.style.display = 'none';
             if (this.chatContainer) this.chatContainer.style.display = 'flex';
-            this.hideMobileDrawer(); // Close mobile drawer if open
+            this.hideMobileDrawer();
         }
     }
     
@@ -402,6 +411,11 @@ class GlobalChatManager {
         
         // Add to mobile container
         this.addMessageToContainer(message, this.mobileMessages, true);
+
+        // Show notification dot on mobile if drawer is closed
+        if (!this.isDrawerOpen && this.mobileNotificationDot) {
+            this.mobileNotificationDot.classList.remove('hidden');
+        }
     }
     
     addMessageToContainer(message, container, isMobile) {
