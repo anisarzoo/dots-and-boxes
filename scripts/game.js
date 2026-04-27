@@ -1131,6 +1131,7 @@ export class DotsAndBoxesGame {
 
         // Determine which lines are actually new (network added them, not us)
         const prevLines = this.lines ? new Set(this.lines) : new Set();
+        const trulyNewLines = incomingLines.filter(l => !prevLines.has(l) && !this.animatingLines.has(l));
 
         // ---- Merge network state into local state ----
         // Preserve player colors that were assigned locally (network doesn't store colors)
@@ -1141,7 +1142,22 @@ export class DotsAndBoxesGame {
             });
         }
 
-        this.lines = new Set(incomingLines);
+        // Trigger animations for truly new lines
+        trulyNewLines.forEach(lineKey => {
+            const line = this.parseLineKey(lineKey);
+            const ownerIdx = gameState.lineOwners ? gameState.lineOwners[lineKey] : 0;
+            if (line) {
+                this.animateLine(line, ownerIdx, () => {
+                    this.lines.add(lineKey);
+                    this.lineOwners.set(lineKey, ownerIdx);
+                    this.draw();
+                });
+            }
+        });
+
+        // Only update this.lines with lines that are NOT new or already completed animation
+        // This prevents the instant appearance from the network sync
+        this.lines = new Set(incomingLines.filter(l => !trulyNewLines.includes(l)));
         this.lineOwners = new Map(Object.entries(gameState.lineOwners || {}));
         this.currentPlayerIndex = gameState.currentPlayer !== undefined ? gameState.currentPlayer : 0;
 
@@ -1192,37 +1208,16 @@ export class DotsAndBoxesGame {
             this.gameState = 'playing';
         }
 
-        // Clear animation state from network updates
-        this.animationQueue = [];
-        this.isAnimating = false;
-
-        // Play chalk/marker sound ONLY for lines added by the OTHER player
-        // Use the identity assigned during room join
-        let localIdentity = null;
-        if (this.networkManager && this.networkManager.playerData) {
-            localIdentity = this.networkManager.playerData.identity;
-        }
-        if (!localIdentity) {
-            const localName = this.soundManager?.getPlayerName?.() || '';
-            const localPlayer = this.players.find(p => p.displayName === localName);
-            if (localPlayer) localIdentity = localPlayer.identity;
-        }
-        const newLines = incomingLines.filter(l => !prevLines.has(l));
-        if (newLines.length > 0 && localIdentity) {
-            newLines.forEach(lineKey => {
-                const ownerIdx = this.lineOwners.get(lineKey);
-                const ownerPlayer = ownerIdx !== undefined ? this.players[ownerIdx] : null;
-                const isOwnMove = ownerPlayer && ownerPlayer.identity === localIdentity;
-                if (!isOwnMove && this.soundManager) {
-                    const theme = document.body.classList.contains('theme-whiteboard') ? 'whiteboard' : 'greenboard';
-                    this.soundManager.playSound(theme === 'greenboard' ? 'chalk' : 'marker');
-                }
-            });
+        // Clear animation state from network updates (only if no lines are drawing)
+        if (this.animatingLines.size === 0) {
+            this.animationQueue = [];
+            this.isAnimating = false;
         }
 
         this.updateUI();
         this.draw();
     }
+
 
     handleNetworkMove(moveData) {
         if (!moveData || this.isLocal) return;
