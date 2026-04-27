@@ -20,6 +20,7 @@ import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.12.2/f
 class GlobalChatManager {
     constructor() {
         this.currentUser = null;
+        this.sessionId = Math.random().toString(36).substring(2, 11);
         this.messageLimit = 100;
         this.onlineUsersRef = null;
         this.currentUserPresenceRef = null;
@@ -70,24 +71,46 @@ class GlobalChatManager {
         // Set up event listeners
         this.setupEventListeners();
         
+        // Start presence tracking for everyone (guests + signed in)
+        this.setupUserPresence();
+        
         // Initialize message listening (even for non-authenticated users)
         this.initializeMessageListener();
     }
     
     handleAuthStateChange(user) {
+        const authChanged = (!!this.currentUser !== !!user);
         this.currentUser = user;
         
         if (user) {
             // User is signed in
             this.showChatInput();
-            this.setupUserPresence();
         } else {
             // User is signed out
             this.showSigninMessage();
-            this.cleanupUserPresence();
+        }
+        
+        // Update presence data if auth state changed (to update name/photo)
+        if (authChanged || user) {
+            this.updatePresenceData();
         }
         
         this.updateUI();
+    }
+    
+    updatePresenceData() {
+        if (!this.currentUserPresenceRef) return;
+        
+        const presenceData = {
+            uid: this.currentUser?.uid || 'guest',
+            displayName: this.currentUser?.displayName || 'Guest',
+            photoURL: this.currentUser?.photoURL || '',
+            isOnline: true,
+            lastSeen: serverTimestamp(),
+            sessionId: this.sessionId
+        };
+        
+        set(this.currentUserPresenceRef, presenceData);
     }
     
     showChatInput() {
@@ -180,25 +203,31 @@ class GlobalChatManager {
     }
     
     setupUserPresence() {
-        if (!this.currentUser || !db) return;
+        if (!db) return;
         
-        // Create presence reference
+        // Create presence reference using session ID to handle multiple tabs correctly
         this.onlineUsersRef = ref(db, 'onlineUsers');
-        this.currentUserPresenceRef = ref(db, `onlineUsers/${this.currentUser.uid}`);
+        this.currentUserPresenceRef = ref(db, `onlineUsers/${this.sessionId}`);
         
-        // Set user as online
-        const userPresenceData = {
-            uid: this.currentUser.uid,
-            displayName: this.currentUser.displayName || this.currentUser.email || 'Anonymous',
-            photoURL: this.currentUser.photoURL || '',
-            lastSeen: serverTimestamp(),
-            isOnline: true
-        };
+        const connectedRef = ref(db, '.info/connected');
         
-        set(this.currentUserPresenceRef, userPresenceData);
-        
-        // Remove user when they disconnect
-        onDisconnect(this.currentUserPresenceRef).remove();
+        onValue(connectedRef, (snapshot) => {
+            if (snapshot.val() === true) {
+                // When we're connected (or reconnected)
+                const presenceData = {
+                    uid: this.currentUser?.uid || 'guest',
+                    displayName: this.currentUser?.displayName || 'Guest',
+                    photoURL: this.currentUser?.photoURL || '',
+                    isOnline: true,
+                    lastSeen: serverTimestamp(),
+                    sessionId: this.sessionId
+                };
+                
+                // Set the presence and ensure it's removed on disconnect
+                onDisconnect(this.currentUserPresenceRef).remove();
+                set(this.currentUserPresenceRef, presenceData);
+            }
+        });
         
         // Listen for online users changes
         this.setupOnlineUsersListener();
@@ -233,7 +262,6 @@ class GlobalChatManager {
         }
         
         this.onlineUsersRef = null;
-        this.updateOnlineUsersCount(0);
     }
     
     updateOnlineUsersCount(count) {
