@@ -5,7 +5,14 @@ import { DotsAndBoxesGame } from './game.js';
 import { RematchManager } from './rematch.js';
 import { OrientationHandler } from './orientation-handler.js';
 // Main JavaScript - App initialization and screen management
-import { supabase } from './supabase-config.js';
+import { auth, db } from './firebase-config.js';
+import {
+    GoogleAuthProvider,
+    signInWithPopup,
+    signOut,
+    onAuthStateChanged
+} from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
+import { ref, get } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js';
 
 class DotsAndBoxesApp {
     _isGoingHome = false;
@@ -47,7 +54,7 @@ class DotsAndBoxesApp {
         this.matchHistory = this.matchHistory.slice(0, 50); // Keep last 50 matches
         localStorage.setItem('dotsAndBoxesHistory', JSON.stringify(this.matchHistory));
     }
-    // Supabase Auth logic
+    // Firebase Auth logic
     setupGoogleAuth() {
         const signInBtn = document.getElementById('googleSignInBtn');
         const signOutBtn = document.getElementById('signOutBtn');
@@ -63,14 +70,12 @@ class DotsAndBoxesApp {
                 if (signInBtn) signInBtn.style.display = 'none';
                 if (userInfoDiv) userInfoDiv.style.display = '';
 
-                // Supabase puts google metadata in user_metadata
-                const meta = user.user_metadata || {};
-                const dName = meta.full_name || 'Signed in';
+                const dName = user.displayName || user.email || 'Signed in';
                 if (userNameDisplay) userNameDisplay.textContent = dName;
 
                 if (userPhoto) {
-                    if (meta.avatar_url) {
-                        userPhoto.src = meta.avatar_url;
+                    if (user.photoURL) {
+                        userPhoto.src = user.photoURL;
                         userPhoto.style.display = '';
                     } else {
                         userPhoto.style.display = 'none';
@@ -82,9 +87,7 @@ class DotsAndBoxesApp {
             }
         };
 
-        // Listen for Supabase auth changes
-        supabase.auth.onAuthStateChange((event, session) => {
-            const user = session?.user || null;
+        onAuthStateChanged(auth, (user) => {
             if (user) {
                 this.setSignedInUser(user);
                 updateUI(user);
@@ -96,20 +99,15 @@ class DotsAndBoxesApp {
             }
         });
 
-        // Trigger initial check
-        supabase.auth.getSession().then(({ data: { session } }) => {
-            const user = session?.user || null;
-            this.setSignedInUser(user);
-            updateUI(user);
-        });
-
         // Event Delegation for Sign In
         document.addEventListener('click', async (e) => {
             const btn = e.target.closest('#googleSignInBtn');
             if (btn) {
                 e.preventDefault();
-                const { error } = await supabase.auth.signInWithOAuth({ provider: 'google' });
-                if (error) {
+                try {
+                    const provider = new GoogleAuthProvider();
+                    await signInWithPopup(auth, provider);
+                } catch (error) {
                     // console.error('Google sign-in failed:', error);
                     alert('Google sign-in failed: ' + error.message);
                 }
@@ -118,7 +116,7 @@ class DotsAndBoxesApp {
             const signOutTarget = e.target.closest('#signOutBtn');
             if (signOutTarget) {
                 e.preventDefault();
-                await supabase.auth.signOut();
+                await signOut(auth);
             }
         });
     }
@@ -129,11 +127,10 @@ class DotsAndBoxesApp {
             this.signedInUser = null;
             return;
         }
-        const meta = user.user_metadata || {};
         this.signedInUser = {
-            displayName: meta.full_name || 'Player',
-            uid: user.id,
-            photoURL: meta.avatar_url || null
+            displayName: user.displayName || user.email || 'Player',
+            uid: user.uid,
+            photoURL: user.photoURL || null
         };
     }
 
@@ -886,18 +883,12 @@ class DotsAndBoxesApp {
         };
         const success = await this.networkManager.joinRoom(roomCode, joinPlayer);
         if (success) {
-            // Fetch room data from Supabase to get grid size and max players
+            let roomData = null;
             try {
-                const { data: roomData } = await this.networkManager.supabase
-                    .from('rooms')
-                    .select('*')
-                    .eq('code', roomCode)
-                    .single();
-
-                if (roomData) {
-                    if (roomData.max_players) {
-                        this._roomMaxPlayers = roomData.max_players;
-                    }
+                const roomSnap = await get(ref(db, `rooms/${roomCode}`));
+                roomData = roomSnap.exists() ? roomSnap.val() : null;
+                if (roomData && roomData.maxPlayers) {
+                    this._roomMaxPlayers = roomData.maxPlayers;
                 }
             } catch (e) { }
 
@@ -911,18 +902,7 @@ class DotsAndBoxesApp {
             if (joinedRoomCode) {
                 joinedRoomCode.textContent = roomCode;
             }
-            // Get grid size from Supabase
-            let gridSize = 5;
-            try {
-                const { data: roomData } = await this.networkManager.supabase
-                    .from('rooms')
-                    .select('grid_size')
-                    .eq('code', roomCode)
-                    .single();
-                if (roomData && roomData.grid_size) {
-                    gridSize = roomData.grid_size;
-                }
-            } catch (e) { }
+            let gridSize = roomData && roomData.gridSize ? roomData.gridSize : 5;
             const joinedGridSize = document.getElementById('joinedGridSize');
             if (joinedGridSize) {
                 joinedGridSize.textContent = gridSize + ' × ' + gridSize;
@@ -1430,7 +1410,7 @@ class DotsAndBoxesApp {
     async startNetworkGame() {
         // console.log('[main.js] startNetworkGame called');
         const roomCode = this.networkManager.currentRoom;
-        if (!roomCode) {
+        if (!roomCode || !this.networkManager || !this.networkManager.db) {
             // console.error('[main.js] No active room');
             return;
         }
@@ -1438,18 +1418,13 @@ class DotsAndBoxesApp {
         this.showScreen('gameScreen');
 
         try {
-            // Fetch initial room data from Supabase once
-            const { data: roomData, error } = await this.networkManager.supabase
-                .from('rooms')
-                .select('*')
-                .eq('code', roomCode)
-                .single();
+            const roomSnap = await get(ref(this.networkManager.db, `rooms/${roomCode}`));
+            if (!roomSnap.exists()) throw new Error("Room not found");
 
-            if (error || !roomData) throw error || new Error("Room not found");
-
-            const gridSize = roomData.grid_size || 5;
-            if (roomData.max_players) {
-                this._roomMaxPlayers = roomData.max_players;
+            const roomData = roomSnap.val();
+            const gridSize = roomData.gridSize || 5;
+            if (roomData.maxPlayers) {
+                this._roomMaxPlayers = roomData.maxPlayers;
             }
             if (this.chatManager) this.chatManager.clearMessages();
 
@@ -1464,7 +1439,7 @@ class DotsAndBoxesApp {
                 connected: p.connected !== false
             }));
 
-            const gameState = roomData.game_state || {};
+            const gameState = roomData.gameState || {};
             if (roomData.status === 'playing') {
                 this.initializeGameInstance({ room: roomCode }, gameState, playersArr, gridSize);
             }

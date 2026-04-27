@@ -1,20 +1,36 @@
-// Rematch Manager - Handles multiplayer rematch requests and synchronization
-import { supabase } from './supabase-config.js';
+﻿// Rematch Manager - Handles multiplayer rematch requests and synchronization
+import { db } from './firebase-config.js';
+import {
+    ref,
+    get,
+    set,
+    update,
+    remove,
+    push,
+    onValue,
+    off,
+    runTransaction,
+    serverTimestamp
+} from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js';
 
 export class RematchManager {
     constructor(app, networkManager, gameInstance) {
         this.app = app;
         this.networkManager = networkManager;
         this.gameInstance = gameInstance;
-        this.rematchRequests = new Map(); // Track who requested rematch
+        this.rematchRequests = new Map();
         this.rematchReady = false;
         this.isProcessing = false;
-        this.rematchChannel = null;
+        this.rematchListenerRef = null;
+        this.rematchListener = null;
+    }
+
+    _getDb() {
+        return this.networkManager?.db || db;
     }
 
     async requestRematch() {
         if (!this.networkManager || !this.networkManager.currentRoom || !this.networkManager.playerData) {
-            // console.warn('[RematchManager] Cannot request rematch: missing network data');
             return false;
         }
 
@@ -25,46 +41,49 @@ export class RematchManager {
             const roomCode = this.networkManager.currentRoom;
             const playerName = this.networkManager.playerData.displayName;
             const sanitizedName = this.networkManager.sanitizeKey(playerName);
+            const activeDb = this._getDb();
+            const gameStateRef = ref(activeDb, `rooms/${roomCode}/gameState`);
 
-            // Get current room configuration
-            const { data: roomData, error } = await supabase
-                .from('rooms')
-                .select('game_state')
-                .eq('code', roomCode)
-                .single();
+            const txn = await runTransaction(gameStateRef, (currentState) => {
+                const nextState = (currentState && typeof currentState === 'object') ? { ...currentState } : {};
 
-            if (error || !roomData) throw new Error('Could not fetch room');
+                if (!nextState.rematchRequests || typeof nextState.rematchRequests !== 'object') {
+                    nextState.rematchRequests = {};
+                }
 
-            let gameState = roomData.game_state || {};
-            // Initialize rematch property if missing
-            if (!gameState.rematchRequests) gameState.rematchRequests = {};
+                nextState.rematchRequests[sanitizedName] = {
+                    requested: true,
+                    timestamp: Date.now()
+                };
 
-            gameState.rematchRequests[sanitizedName] = { requested: true, timestamp: new Date().toISOString() };
+                const players = Array.isArray(nextState.players) ? nextState.players : [];
+                const allRequested = players.length > 0 && players.every((p) => {
+                    const sName = this.networkManager.sanitizeKey(p.displayName);
+                    return nextState.rematchRequests[sName]?.requested === true;
+                });
 
-            // Check if all requested
-            const players = gameState.players || [];
-            // Assuming active players
-            const allRequested = players.every(p => {
-                const sName = this.networkManager.sanitizeKey(p.displayName);
-                return gameState.rematchRequests[sName]?.requested === true;
+                if (allRequested) {
+                    nextState.rematchReady = true;
+                }
+
+                return nextState;
             });
 
-            if (allRequested) {
-                gameState.rematchReady = true;
-            }
+            if (!txn.committed) return false;
 
-            await supabase
-                .from('rooms')
-                .update({ game_state: gameState })
-                .eq('code', roomCode);
+            const finalState = txn.snapshot.val() || {};
+            const players = Array.isArray(finalState.players) ? finalState.players : [];
+            const allRequested = players.length > 0 && players.every((p) => {
+                const sName = this.networkManager.sanitizeKey(p.displayName);
+                return finalState.rematchRequests?.[sName]?.requested === true;
+            });
 
-            this.isProcessing = false;
-            return allRequested;
-
+            this.rematchReady = finalState.rematchReady === true;
+            return allRequested || this.rematchReady;
         } catch (error) {
-            // console.error('[RematchManager] Error requesting rematch:', error);
-            this.isProcessing = false;
             return false;
+        } finally {
+            this.isProcessing = false;
         }
     }
 
@@ -73,19 +92,16 @@ export class RematchManager {
 
         try {
             const roomCode = this.networkManager.currentRoom;
+            const activeDb = this._getDb();
+            const roomRef = ref(activeDb, `rooms/${roomCode}`);
+            const roomSnap = await get(roomRef);
 
-            const { data: roomData } = await supabase
-                .from('rooms')
-                .select('*')
-                .eq('code', roomCode)
-                .single();
+            if (!roomSnap.exists()) throw new Error('Room data not found');
+            const roomData = roomSnap.val();
 
-            if (!roomData || !roomData.players) throw new Error('Room data not found');
-
-            const gridSize = roomData.grid_size || 5;
-
+            const gridSize = roomData.gridSize || 5;
             const connectedPlayers = Object.values(roomData.players || {})
-                .filter(p => p.connected !== false)
+                .filter((p) => p.connected !== false)
                 .map((p, idx) => ({
                     id: idx + 1,
                     displayName: p.displayName || p.name || `Player ${idx + 1}`,
@@ -104,36 +120,32 @@ export class RematchManager {
                 boxes: [],
                 players: connectedPlayers,
                 currentPlayer: 0,
-                gridSize: gridSize,
+                gridSize,
                 gameState: 'playing',
-                isRematch: true
+                isRematch: true,
+                rematchReady: false,
+                rematchRequests: {}
             };
 
-            await supabase
-                .from('rooms')
-                .update({
-                    status: 'playing',
-                    game_state: freshGameState,
-                    game_started_at: new Date().toISOString()
-                })
-                .eq('code', roomCode);
-
-            // Send system message
-            await supabase
-                .from('room_chat')
-                .delete()
-                .eq('room_code', roomCode);
-
-            await supabase.from('room_chat').insert({
-                room_code: roomCode,
-                player: 'System',
-                identity: 'system',
-                message: '🎮 Rematch started! Good luck everyone!'
+            await update(roomRef, {
+                status: 'playing',
+                gameState: freshGameState,
+                gameStartedAt: serverTimestamp()
             });
 
+            const chatRef = ref(activeDb, `rooms/${roomCode}/chat`);
+            await remove(chatRef);
+            const msgRef = push(chatRef);
+            await set(msgRef, {
+                player: 'System',
+                identity: 'system',
+                message: 'Rematch started! Good luck everyone!',
+                timestamp: serverTimestamp()
+            });
+
+            this.rematchReady = false;
             return true;
         } catch (error) {
-            // console.error('[RematchManager] Error confirming rematch:', error);
             return false;
         }
     }
@@ -143,21 +155,18 @@ export class RematchManager {
         this.cleanup();
 
         const roomCode = this.networkManager.currentRoom;
+        const activeDb = this._getDb();
 
-        this.rematchChannel = supabase.channel(`rematch:${roomCode}`)
-            .on(
-                'postgres_changes',
-                { event: 'UPDATE', schema: 'public', table: 'rooms', filter: `code=eq.${roomCode}` },
-                (payload) => {
-                    const gameState = payload.new.game_state || {};
-                    if (gameState.rematchReady === true) {
-                        if (typeof onRematchReady === 'function') {
-                            onRematchReady();
-                        }
-                    }
+        this.rematchListenerRef = ref(activeDb, `rooms/${roomCode}/gameState`);
+        this.rematchListener = onValue(this.rematchListenerRef, (snapshot) => {
+            const gameState = snapshot.exists() ? snapshot.val() : {};
+            if (gameState.rematchReady === true) {
+                this.rematchReady = true;
+                if (typeof onRematchReady === 'function') {
+                    onRematchReady();
                 }
-            )
-            .subscribe();
+            }
+        });
     }
 
     resetGameState() {
@@ -184,7 +193,6 @@ export class RematchManager {
 
             return true;
         } catch (error) {
-            // console.error('[RematchManager] Error resetting game state:', error);
             return false;
         }
     }
@@ -212,10 +220,11 @@ export class RematchManager {
     }
 
     cleanup() {
-        if (this.rematchChannel) {
-            this.rematchChannel.unsubscribe();
-            this.rematchChannel = null;
+        if (this.rematchListener && this.rematchListenerRef) {
+            off(this.rematchListenerRef, 'value', this.rematchListener);
+            this.rematchListener = null;
         }
+        this.rematchListenerRef = null;
         this.rematchRequests.clear();
         this.rematchReady = false;
         this.isProcessing = false;
