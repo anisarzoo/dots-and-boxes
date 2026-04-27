@@ -119,6 +119,32 @@ body.theme-greenboard {
     background: #f5f5dc;
 }
 
+body.theme-greenboard .mobile-nav {
+    background: rgba(13, 56, 24, 0.95) !important;
+    border-top-color: rgba(255, 255, 255, 0.2) !important;
+}
+
+body.theme-greenboard .mobile-drawer {
+    background: #0d3818 !important;
+    color: #ffffff !important;
+    border-top-color: #ffffff !important;
+    border-left-color: #ffffff !important;
+}
+
+body.theme-greenboard .nav-btn {
+    color: #ffffff !important;
+}
+
+body.theme-greenboard .nav-btn:hover,
+body.theme-greenboard .nav-btn.active {
+    background: rgba(255, 255, 255, 0.1) !important;
+}
+
+body.theme-greenboard .drawer-header {
+    background: #1a3c20 !important;
+    color: #ffffff !important;
+}
+
 /* Whiteboard Theme */
 body.theme-whiteboard {
     --board-bg: #ffffff;
@@ -142,6 +168,32 @@ body.theme-whiteboard {
     --accent-hover: #245373;
     --accent-rgb: 45, 90, 135;
     --theme-font: 'Patrick Hand', cursive;
+}
+
+body.theme-whiteboard .mobile-nav {
+    background: #ffffff !important;
+    border-top-color: #34495e !important;
+}
+
+body.theme-whiteboard .mobile-drawer {
+    background: #ffffff !important;
+    color: #333333 !important;
+    border-top-color: #34495e !important;
+    border-left-color: #34495e !important;
+}
+
+body.theme-whiteboard .nav-btn {
+    color: #333333 !important;
+}
+
+body.theme-whiteboard .nav-btn:hover,
+body.theme-whiteboard .nav-btn.active {
+    background: #ecf0f1 !important;
+}
+
+body.theme-whiteboard .drawer-header {
+    background: #f8f9fa !important;
+    color: #333333 !important;
 }
 
 /* Game Board Styling */
