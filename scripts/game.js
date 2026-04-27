@@ -70,6 +70,8 @@ export class DotsAndBoxesGame {
         this._markerTimeout = null;
         this._orientationLockout = false; // Prevent orientation spam
         this.hoveredLine = null;
+        this.animatingLines = new Map();
+
 
         // Responsive: Redraw board on resize/orientation change with debounce
         this._resizeTimeout = null;
@@ -363,25 +365,26 @@ export class DotsAndBoxesGame {
 
     drawLine(line) {
         const lineKey = this.getLineKey(line);
+        if (this.lines.has(lineKey) || this.animatingLines.has(lineKey)) return;
+
+        // Block input while animating
+        this.isAnimating = true;
+
+        this.animateLine(line, this.currentPlayerIndex, () => {
+            this.handleLineCompletion(line, this.currentPlayerIndex);
+        });
+    }
+
+    handleLineCompletion(line, playerIndex) {
+        const lineKey = this.getLineKey(line);
         if (this.lines.has(lineKey)) return;
 
         this.lines.add(lineKey);
-        this.lineOwners.set(lineKey, this.currentPlayerIndex);
+        this.lineOwners.set(lineKey, playerIndex);
 
-        const currentPlayer = this.players[this.currentPlayerIndex];
-        const theme = document.body.classList.contains('theme-whiteboard') ? 'whiteboard' : 'greenboard';
-        const soundName = theme === 'greenboard' ? 'chalk' : 'marker';
-        this.soundManager?.playSound(soundName);
-
-        this.createDrawEffect(line);
-
+        const currentPlayer = this.players[playerIndex];
         const completedBoxes = this.checkCompletedBoxes(line);
         let boxesCompleted = 0;
-
-        // Block input while animating
-        if (completedBoxes.length > 0) {
-            this.isAnimating = true;
-        }
 
         completedBoxes.forEach(box => {
             const existingBox = this.boxes.find(b => b.row === box.row && b.col === box.col);
@@ -389,7 +392,7 @@ export class DotsAndBoxesGame {
                 this.boxes.push({
                     row: box.row,
                     col: box.col,
-                    owner: currentPlayer.identity || this.currentPlayerIndex
+                    owner: currentPlayer.identity || playerIndex
                 });
                 currentPlayer.score++;
                 boxesCompleted++;
@@ -400,27 +403,39 @@ export class DotsAndBoxesGame {
             this.animateBoxCompletion(completedBoxes);
         } else {
             this.nextTurn();
-            // For local games, always clear isAnimating and force UI update/redraw after move
-            if (this.isLocal) {
-                setTimeout(() => {
-                    this.isAnimating = false;
-                    this.updateUI();
-                    this.draw();
-                }, 100);
-            }
+            this.isAnimating = false;
         }
-
-        this.updateUI();
 
         if (this.isGameFinished()) {
             this.endGame();
         }
 
+        this.updateUI();
         this.draw();
 
-        if (!this.isLocal && this.networkManager) {
+        // Sync with network only if it was our move
+        if (!this.isLocal && this.networkManager && playerIndex === this.getLocalPlayerIndex()) {
             this.sendGameStateUpdate();
         }
+    }
+
+    animateLine(line, playerIndex, onComplete) {
+        const lineKey = this.getLineKey(line);
+        if (this.animatingLines.has(lineKey) || this.lines.has(lineKey)) return;
+
+        this.animatingLines.set(lineKey, {
+            line,
+            playerIndex,
+            startTime: performance.now(),
+            duration: 250, // 250ms for drawing
+            onComplete
+        });
+
+        const theme = document.body.classList.contains('theme-whiteboard') ? 'whiteboard' : 'greenboard';
+        const soundName = theme === 'greenboard' ? 'chalk' : 'marker';
+        this.soundManager?.playSound(soundName);
+
+        this.draw();
     }
 
     createDrawEffect(line) {
@@ -790,8 +805,36 @@ export class DotsAndBoxesGame {
             this.drawGhostLine();
             this.drawHandDrawnDots();
             this.drawHandDrawnLines();
+            this.drawAnimatingLines();
             this.drawCompletedBoxes();
             this._drawPending = false;
+
+            if (this.animatingLines.size > 0) {
+                this.requestRedraw();
+            }
+        });
+    }
+
+    requestRedraw() {
+        if (!this._drawPending) {
+            this.draw();
+        }
+    }
+
+    drawAnimatingLines() {
+        const theme = document.body.classList.contains('theme-whiteboard') ? 'whiteboard' : 'greenboard';
+        const now = performance.now();
+
+        this.animatingLines.forEach((anim, lineKey) => {
+            const elapsed = now - anim.startTime;
+            const progress = Math.min(1, elapsed / anim.duration);
+
+            this.drawImperfectLine(anim.line, theme, anim.playerIndex, progress);
+
+            if (progress >= 1) {
+                this.animatingLines.delete(lineKey);
+                if (anim.onComplete) anim.onComplete();
+            }
         });
     }
 
@@ -888,6 +931,7 @@ export class DotsAndBoxesGame {
         this.ctx.lineJoin = 'round';
 
         this.lines.forEach(lineKey => {
+            if (this.animatingLines.has(lineKey)) return;
             const line = this.parseLineKey(lineKey);
             if (!line) return;
             const playerIndex = this.lineOwners.get(lineKey) || 0;
@@ -895,7 +939,7 @@ export class DotsAndBoxesGame {
         });
     }
 
-    drawImperfectLine(line, theme, playerIndex = 0) {
+    drawImperfectLine(line, theme, playerIndex = 0, progress = 1) {
         const lineKey = this.getLineKey(line);
 
         if (!this.lineSegments.has(lineKey)) {
@@ -921,6 +965,7 @@ export class DotsAndBoxesGame {
         }
 
         const points = this.lineSegments.get(lineKey);
+        const limit = Math.ceil(points.length * progress);
 
         if (theme === 'greenboard') {
             this.ctx.strokeStyle = '#ffffff';
@@ -936,7 +981,7 @@ export class DotsAndBoxesGame {
         this.ctx.beginPath();
         this.ctx.moveTo(points[0].x, points[0].y);
 
-        for (let i = 1; i < points.length; i++) {
+        for (let i = 1; i < limit; i++) {
             this.ctx.lineTo(points[i].x, points[i].y);
         }
 
@@ -1182,48 +1227,17 @@ export class DotsAndBoxesGame {
     handleNetworkMove(moveData) {
         if (!moveData || this.isLocal) return;
 
-        const { line, lineKey, currentPlayer, completedBoxes } = moveData;
+        const { line, lineKey, currentPlayer } = moveData;
 
-        if (this.lines.has(lineKey)) {
-            // console.log('Duplicate move ignored:', lineKey);
+        if (this.lines.has(lineKey) || this.animatingLines.has(lineKey)) {
             return;
         }
 
-        this.lines.add(lineKey);
-
-        const theme = document.body.classList.contains('theme-whiteboard') ? 'whiteboard' : 'greenboard';
-        const soundName = theme === 'greenboard' ? 'chalk' : 'marker';
-        this.soundManager?.playSound(soundName);
-
-        if (completedBoxes && completedBoxes.length > 0) {
-            this.players[currentPlayer].score += completedBoxes.length;
-
-            completedBoxes.forEach(box => {
-                // Always set owner as player identity for consistency
-                box.owner = this.players[currentPlayer]?.identity;
-                // Ensure box is added to the boxes array if not already present
-                const existingBox = this.boxes.find(b => b.row === box.row && b.col === box.col);
-                if (!existingBox) {
-                    this.boxes.push({
-                        row: box.row,
-                        col: box.col,
-                        owner: this.players[currentPlayer]?.identity
-                    });
-                }
-            });
-
-            this.animateBoxCompletion(completedBoxes);
-        }
-
-        this.currentPlayerIndex = currentPlayer;
-
-        if (line) {
-            this.createDrawEffect(line);
-        }
-
-        this.updateUI();
-        this.draw();
+        this.animateLine(line, currentPlayer, () => {
+            this.handleLineCompletion(line, currentPlayer);
+        });
     }
+
 
     getLocalPlayerIndex() {
         if (this.isLocal) return this.currentPlayerIndex;
