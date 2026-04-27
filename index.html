@@ -130,7 +130,23 @@
 
 </head>
 
-<body>
+<body class="theme-greenboard">
+    <script>
+        // Early theme detection to prevent FOUC (Flash of Unstyled Content)
+        (function() {
+            try {
+                const savedSettings = localStorage.getItem('dotsAndBoxesSettings');
+                if (savedSettings) {
+                    const settings = JSON.parse(savedSettings);
+                    if (settings.theme) {
+                        document.body.className = 'theme-' + settings.theme;
+                    }
+                }
+            } catch (e) {
+                console.warn('Early theme loading failed', e);
+            }
+        })();
+    </script>
     <!-- Home Screen -->
     <div id="homeScreen" class="screen active">
         <div class="home-container">
