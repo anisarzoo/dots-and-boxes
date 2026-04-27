@@ -40,9 +40,6 @@ export class NetworkManager {
         this.isJoiningRoom = false;
         this.lastError = null;
 
-        // Bind methods to prevent context issues
-        this.handleConnectionChange = this.handleConnectionChange.bind(this);
-        
         // Setup connection monitoring
         this.setupConnectionMonitoring();
     }
