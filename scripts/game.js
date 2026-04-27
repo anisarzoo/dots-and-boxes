@@ -424,50 +424,7 @@ export class DotsAndBoxesGame {
     }
 
     createDrawEffect(line) {
-        const theme = document.body.classList.contains('theme-whiteboard') ? 'whiteboard' : 'greenboard';
-
-        if (theme === 'greenboard') {
-            this.createChalkDust(line.start.x + (line.end.x - line.start.x) / 2,
-                line.start.y + (line.end.y - line.start.y) / 2);
-        } else {
-            this.createMarkerEffect(line);
-        }
-    }
-
-    createChalkDust(x, y) {
-        const dust = document.createElement('div');
-        dust.className = 'chalk-dust';
-        dust.style.position = 'absolute';
-        dust.style.left = x + 'px';
-        dust.style.top = y + 'px';
-        dust.style.pointerEvents = 'none';
-
-        this.canvas.parentElement.appendChild(dust);
-
-        setTimeout(() => {
-            dust.remove();
-        }, 500);
-    }
-
-    createMarkerEffect(line) {
-        let effect = this._markerEffect;
-        if (!effect) {
-            effect = document.createElement('div');
-            effect.className = 'marker-effect';
-            effect.style.position = 'absolute';
-            effect.style.pointerEvents = 'none';
-            this._markerEffect = effect;
-            this.canvas.parentElement.appendChild(effect);
-        }
-        effect.style.left = (line.start.x + (line.end.x - line.start.x) / 2) + 'px';
-        effect.style.top = (line.start.y + (line.end.y - line.start.y) / 2) + 'px';
-        const currentPlayer = this.players[this.currentPlayerIndex];
-        effect.style.setProperty('--player-color', currentPlayer.color);
-        effect.style.display = 'block';
-        clearTimeout(this._markerTimeout);
-        this._markerTimeout = setTimeout(() => {
-            effect.style.display = 'none';
-        }, 300);
+        // Effect removed per user request
     }
 
     getLineKey(line) {
@@ -967,13 +924,9 @@ export class DotsAndBoxesGame {
 
         if (theme === 'greenboard') {
             this.ctx.strokeStyle = '#ffffff';
-            this.ctx.shadowColor = 'rgba(255, 255, 255, 0.3)';
-            this.ctx.shadowBlur = 2;
         } else {
             const player = this.players[playerIndex] || this.players[0];
             this.ctx.strokeStyle = player.color;
-            this.ctx.shadowColor = 'rgba(0, 0, 0, 0.1)';
-            this.ctx.shadowBlur = 1;
         }
 
         this.ctx.lineWidth = this.lineWidth;
@@ -988,20 +941,6 @@ export class DotsAndBoxesGame {
         }
 
         this.ctx.stroke();
-
-        if (theme === 'greenboard') {
-            this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.6)';
-            this.ctx.lineWidth = this.lineWidth * 0.7;
-            this.ctx.setLineDash([2, 3]);
-            this.ctx.beginPath();
-            this.ctx.moveTo(line.start.x, line.start.y);
-            this.ctx.lineTo(line.end.x, line.end.y);
-            this.ctx.stroke();
-            this.ctx.setLineDash([]);
-            this.ctx.lineWidth = this.lineWidth;
-        }
-
-        this.ctx.shadowBlur = 0;
     }
 
     drawCompletedBoxes() {
