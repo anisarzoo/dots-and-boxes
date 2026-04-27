@@ -48,16 +48,26 @@ export class NetworkManager {
     setupConnectionMonitoring() {
         if (!this.db) return;
 
+        let firstCall = true;
+
         try {
             const connectedRef = ref(this.db, '.info/connected');
             const listener = onValue(connectedRef, (snapshot) => {
-                this.isConnected = snapshot.val() === true;
-                if (this.isConnected) {
-                    console.log('Firebase connected');
-                } else {
-                    console.warn('Firebase disconnected');
-                    this.handleConnectionLoss();
+                const connected = snapshot.val() === true;
+                
+                // Only process if the state has changed
+                if (this.isConnected !== connected) {
+                    this.isConnected = connected;
+                    
+                    if (this.isConnected) {
+                        console.log('Firebase connected');
+                    } else if (!firstCall) {
+                        // Only warn if it's not the initial state check
+                        console.warn('Firebase disconnected');
+                        this.handleConnectionLoss();
+                    }
                 }
+                firstCall = false;
             });
             this._allListeners.add(() => off(connectedRef, 'value', listener));
         } catch (error) {
