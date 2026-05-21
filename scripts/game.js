@@ -1143,9 +1143,15 @@ export class DotsAndBoxesGame {
                 return;
             }
 
-            // Close modal for joining players
+            // Close modal for joining players and reset rematch state tracking
             if (this.soundManager && typeof this.soundManager.hideAllModals === 'function') {
                 this.soundManager.hideAllModals();
+                // Reset so the next game end doesn't false-trigger goHome
+                this.soundManager._rematchWasActive = false;
+                if (this.soundManager._rematchGoHomeTimeout) {
+                    clearTimeout(this.soundManager._rematchGoHomeTimeout);
+                    this.soundManager._rematchGoHomeTimeout = null;
+                }
             }
         }
 

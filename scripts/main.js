@@ -1235,6 +1235,12 @@ class DotsAndBoxesApp {
                 }
                 const roomCode = this.networkManager?.currentRoom;
                 if (roomCode) {
+                    // Reset the flag each time we attach a fresh listener (new game cycle)
+                    this._rematchWasActive = false;
+                    if (this._rematchGoHomeTimeout) {
+                        clearTimeout(this._rematchGoHomeTimeout);
+                        this._rematchGoHomeTimeout = null;
+                    }
                     this.gameInstance.rematchManager.listenToRematchState(roomCode, (rematchState) => {
                         this.handleRematchStateUpdate(rematchState);
                     });
@@ -1482,6 +1488,8 @@ class DotsAndBoxesApp {
                 if (isCoordinator && this.gameInstance?.rematchManager) {
                     const roomCode = this.networkManager?.currentRoom;
                     if (roomCode) {
+                        // Reset before resolving so the null-write doesn't trigger goHome
+                        this._rematchWasActive = false;
                         this.gameInstance.rematchManager.resolveRematchState(roomCode, agreedPlayers);
                     }
                 }
@@ -1505,6 +1513,8 @@ class DotsAndBoxesApp {
                 if (isCoordinator && this.gameInstance?.rematchManager) {
                     const roomCode = this.networkManager?.currentRoom;
                     if (roomCode) {
+                        // Reset before resolving so the null-write doesn't trigger goHome
+                        this._rematchWasActive = false;
                         this.gameInstance.rematchManager.resolveRematchState(roomCode, agreedPlayers);
                     }
                 }
