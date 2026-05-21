@@ -207,6 +207,7 @@ class DotsAndBoxesApp {
             }
         });
         this.updateSoundButton();
+        this.updateFullscreenButton();
     }
 
     playSound(soundName) {
@@ -245,6 +246,73 @@ class DotsAndBoxesApp {
         });
     }
 
+    isFullscreenSupported() {
+        return !!(
+            document.documentElement.requestFullscreen ||
+            document.documentElement.webkitRequestFullscreen ||
+            document.documentElement.msRequestFullscreen
+        );
+    }
+
+    isFullscreenActive() {
+        return !!(
+            document.fullscreenElement ||
+            document.webkitFullscreenElement
+        );
+    }
+
+    async requestFullscreenCompat() {
+        if (document.documentElement.requestFullscreen) {
+            await document.documentElement.requestFullscreen();
+            return;
+        }
+        if (document.documentElement.webkitRequestFullscreen) {
+            document.documentElement.webkitRequestFullscreen();
+        }
+    }
+
+    async exitFullscreenCompat() {
+        if (document.exitFullscreen) {
+            await document.exitFullscreen();
+            return;
+        }
+        if (document.webkitExitFullscreen) {
+            document.webkitExitFullscreen();
+        }
+    }
+
+    updateFullscreenButton() {
+        const buttons = document.querySelectorAll('#modalFullscreenToggle');
+        const supported = this.isFullscreenSupported();
+        const active = this.isFullscreenActive();
+
+        buttons.forEach(btn => {
+            if (!btn) return;
+            const icon = btn.querySelector('.fullscreen-icon');
+            const label = btn.querySelector('.fullscreen-label');
+
+            if (!supported) {
+                btn.disabled = true;
+                btn.setAttribute('title', 'Full screen is not available on this browser');
+                if (label) label.textContent = 'Full Screen Unavailable';
+                return;
+            }
+
+            btn.disabled = false;
+            btn.setAttribute('title', active ? 'Exit full screen' : 'Enter full screen');
+
+            if (label) {
+                label.textContent = active ? 'Exit Full Screen' : 'Enter Full Screen';
+            }
+
+            if (icon) {
+                icon.innerHTML = active
+                    ? '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 9H5V5"></path><path d="M15 9h4V5"></path><path d="M9 15H5v4"></path><path d="M15 15h4v4"></path></svg>'
+                    : '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3"></path><path d="M16 3h3a2 2 0 0 1 2 2v3"></path><path d="M8 21H5a2 2 0 0 1-2-2v-3"></path><path d="M16 21h3a2 2 0 0 0 2-2v-3"></path></svg>';
+            }
+        });
+    }
+
     bindEvents() {
         this.bindHomeEvents();
         this.bindNavigationEvents();
@@ -254,6 +322,9 @@ class DotsAndBoxesApp {
         this.bindMobileEvents();
         this.bindHistoryEvents();
         this.renderHistorySummary();
+
+        document.addEventListener('fullscreenchange', () => this.updateFullscreenButton());
+        document.addEventListener('webkitfullscreenchange', () => this.updateFullscreenButton());
     }
 
     bindHistoryEvents() {
@@ -307,15 +378,22 @@ class DotsAndBoxesApp {
         `).join('');
     }
 
-    toggleFullscreen() {
-        if (!document.fullscreenElement) {
-            document.documentElement.requestFullscreen().catch(err => {
-                // console.error(`Error attempting to enable full-screen mode: ${err.message}`);
-            });
-        } else {
-            if (document.exitFullscreen) {
-                document.exitFullscreen();
+    async toggleFullscreen() {
+        if (!this.isFullscreenSupported()) {
+            this.updateFullscreenButton();
+            return;
+        }
+
+        try {
+            if (!this.isFullscreenActive()) {
+                await this.requestFullscreenCompat();
+            } else {
+                await this.exitFullscreenCompat();
             }
+        } catch {
+            // Some browsers reject fullscreen requests unless initiated by direct user gesture.
+        } finally {
+            this.updateFullscreenButton();
         }
     }
 
@@ -451,6 +529,9 @@ class DotsAndBoxesApp {
         });
         document.querySelectorAll('#modalSoundToggle').forEach(btn => {
             btn?.addEventListener('click', () => this.toggleSound());
+        });
+        document.querySelectorAll('#modalFullscreenToggle').forEach(btn => {
+            btn?.addEventListener('click', () => this.toggleFullscreen());
         });
 
         // Open Settings Modal
@@ -1045,6 +1126,7 @@ class DotsAndBoxesApp {
                         quitSection.style.display = 'block';
                     }
                 }
+                this.updateFullscreenButton();
             }
         }
     }

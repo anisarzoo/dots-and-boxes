@@ -1028,22 +1028,14 @@ body.theme-whiteboard .chat-input {
 /* Better handling for orientation changes */
 @media screen and (orientation: portrait) {
     body {
-        width: 100vw;
-        height: 100vh;
+        width: 100%;
+        min-height: 100%;
     }
 }
 
 @media screen and (orientation: landscape) {
     body {
-        width: 100vw;
-        height: 100vh;
-    }
-
-    /* Adjust game board for landscape mode */
-    #mobileGameBoard {
-        max-width: 90vh !important;
-        max-height: 90vh !important;
-        width: 90vh !important;
-        height: 90vh !important;
+        width: 100%;
+        min-height: 100%;
     }
 }

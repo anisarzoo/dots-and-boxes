@@ -22,11 +22,49 @@
 
 /* Responsive Design Overrides */
 @media (max-width: 1150px), (max-height: 499px) {
+    html,
+    body {
+        width: 100%;
+        height: var(--app-viewport-height, 100vh);
+        min-height: var(--app-viewport-height, 100vh);
+        overflow: hidden !important;
+        overscroll-behavior-y: none;
+    }
+
+    #gameScreen,
+    #gameScreen.mobile-view {
+        height: var(--app-viewport-height, 100vh) !important;
+        overflow: hidden !important;
+    }
+
+    .screen {
+        overscroll-behavior-y: contain;
+    }
+
+    .no-scroll-screen.active {
+        height: var(--app-viewport-height, 100vh) !important;
+        overflow: hidden !important;
+    }
+
+    .no-scroll-screen.active>.home-container,
+    .no-scroll-screen.active>.setup-container,
+    .no-scroll-screen.active>.room-container,
+    .no-scroll-screen.active>.join-container,
+    .no-scroll-screen.active>.quickmatch-container {
+        height: 100%;
+        min-height: 100%;
+        max-height: 100%;
+        overflow-y: auto !important;
+        overscroll-behavior-y: contain;
+        -webkit-overflow-scrolling: touch;
+    }
+
     .mobile-ui {
         display: flex !important;
         flex-direction: column !important;
-        min-height: 100vh !important;
-        height: 100vh !important;
+        min-height: var(--app-viewport-height, 100vh) !important;
+        height: var(--app-viewport-height, 100vh) !important;
+        max-height: var(--app-viewport-height, 100vh) !important;
         width: 100vw !important;
         position: fixed !important;
         top: 0 !important;
@@ -79,15 +117,16 @@
         justify-content: center !important;
         padding: 10px !important;
         margin-top: 0 !important;
-        margin-bottom: 70px !important;
-        /* Space for the fixed nav */
+        margin-bottom: 0 !important;
+        padding-bottom: calc(70px + env(safe-area-inset-bottom, 0px)) !important;
+        /* Reserve nav space without adding extra scrollable area */
         min-height: 0 !important;
         overflow: hidden !important;
     }
 
     #mobileGameBoard {
         max-width: 95vw !important;
-        max-height: calc(100vh - 200px) !important;
+        max-height: calc(var(--app-viewport-height, 100vh) - 200px) !important;
         object-fit: contain !important;
         margin: 0 auto !important;
     }
@@ -166,9 +205,9 @@
     .quickmatch-container {
         padding: 12px;
         overflow-y: auto;
-        min-height: 100vh;
+        min-height: 100%;
         box-sizing: border-box;
-        padding-bottom: 70px;
+        padding-bottom: calc(82px + env(safe-area-inset-bottom, 0px)) !important;
     }
 
     .room-info {
@@ -486,137 +525,28 @@
     padding: 12px;
 }
 
-/* ===== LANDSCAPE ORIENTATION HANDLING FOR MOBILE & TABLETS ===== */
-@media (max-width: 1150px) and (orientation: landscape), (max-height: 499px) and (orientation: landscape) {
-
-    html,
-    body {
-        min-height: 100vh;
-        height: auto;
-        overflow-y: auto;
+/* Keep small phones/tablets in portrait mode during gameplay */
+@media (max-width: 1150px) and (orientation: landscape) and (pointer: coarse), (max-height: 499px) and (orientation: landscape) and (pointer: coarse) {
+    #gameScreen.mobile-view .mobile-ui {
+        visibility: hidden !important;
+        pointer-events: none !important;
     }
 
-    #gameScreen {
-        height: 100vh;
-        overflow: hidden;
-    }
-
-    .mobile-ui {
-        min-height: 100vh;
-        height: auto;
-        overflow-y: auto;
-    }
-
-    .mobile-game-area {
-        height: calc(100vh - 120px);
-        padding: 10px;
+    #gameScreen.mobile-view::after {
+        content: 'Please rotate your device to portrait to continue.';
+        position: fixed;
+        inset: 0;
+        z-index: 2500;
         display: flex;
         align-items: center;
         justify-content: center;
-        margin-top: 0;
-        padding-bottom: 10px;
-        min-height: 0;
-    }
-
-    #mobileGameBoard {
-        max-width: 92vw !important;
-        max-height: 82vh !important;
-        aspect-ratio: 1;
-        object-fit: contain;
-    }
-
-    .current-turn-mobile {
-        margin: 2px auto 2px auto;
-        padding: 4px 12px;
-        font-size: 0.75rem;
-    }
-
-    .mobile-header {
-        top: 5px;
-        right: 5px;
-        z-index: 15;
-    }
-
-
-    .mobile-nav {
-        padding: 6px 4px;
-        height: auto;
-    }
-
-    .nav-btn {
-        font-size: 1.1rem;
-        padding: 4px;
-        min-width: 38px;
-        min-height: 38px;
-    }
-
-    .mobile-drawer {
-        left: auto !important;
-        right: 0 !important;
-        width: 240px !important;
-        height: 100vh !important;
-        max-height: 100vh !important;
-        border-top: none !important;
-        border-left: 3px solid #34495e !important;
-        border-radius: 20px 0 0 20px !important;
-        transform: translateX(100%) !important;
-        top: 0 !important;
-        bottom: 0 !important;
-        z-index: 1200 !important;
-    }
-
-    .mobile-drawer.show {
-        transform: translateX(0) !important;
-    }
-
-    .drawer-header {
-        border-radius: 20px 0 0 0 !important;
-        padding: 8px 12px !important;
-    }
-
-    .drawer-header h3 {
-        font-size: 0.95rem !important;
-    }
-
-    #mobileChatMessages {
-        padding: 8px !important;
-    }
-
-    #mobileScoresList {
-        padding: 4px !important;
-    }
-
-    .score-item {
-        padding: 5px 8px !important;
-        font-size: 0.75rem !important;
-        margin-bottom: 3px !important;
-    }
-
-    #mobileSupportBtn {
-        position: fixed !important;
-        top: 6px !important;
-        right: 42px !important;
-        width: 32px !important;
-        height: 32px !important;
-        padding: 4px !important;
-        background: #ffffff !important;
-        border: 2px solid #34495e !important;
-        border-radius: 50% !important;
-        display: flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        z-index: 1002 !important;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1) !important;
-    }
-
-    #mobileSupportBtn svg {
-        width: 18px !important;
-        height: 18px !important;
-        stroke: #34495e !important;
-    }
-
-    .mobile-nav #mobileSupportBtn {
-        display: none !important;
+        text-align: center;
+        padding: 24px;
+        background: var(--board-bg, #2d5016);
+        color: #ffffff;
+        font-size: 1.15rem;
+        font-weight: 700;
+        line-height: 1.4;
     }
 }
 
@@ -632,10 +562,10 @@
     body {
         position: relative;
         width: 100%;
-        min-height: 100vh;
-        height: auto;
-        overflow-y: auto;
+        min-height: var(--app-viewport-height, 100vh);
+        height: var(--app-viewport-height, 100vh);
+        overflow-y: hidden;
         overflow-x: hidden;
     }
 }
-
+
