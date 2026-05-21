@@ -125,7 +125,7 @@ export class DotsAndBoxesGame {
     calculateCanvasSize() {
         const idealSpacing = 40;
         const baseSize = idealSpacing * (this.gridSize - 1) + 100;
-        const isMobileView = window.innerWidth < 768 || window.innerHeight < 500;
+        const isMobileView = window.innerWidth < 1150 || window.innerHeight < 500;
         const verticalPadding = isMobileView ? 120 : 200;
         const maxSize = Math.min(window.innerWidth - 40, window.innerHeight - verticalPadding);
         return Math.max(280, Math.min(baseSize, maxSize));
@@ -133,7 +133,7 @@ export class DotsAndBoxesGame {
 
     setupCanvas() {
         // Select correct canvas based on screen size
-        const isMobileView = window.innerWidth < 768 || window.innerHeight < 500;
+        const isMobileView = window.innerWidth < 1150 || window.innerHeight < 500;
         const canvasId = isMobileView ? 'mobileGameBoard' : 'gameBoard';
         this.canvas = document.getElementById(canvasId);
 
