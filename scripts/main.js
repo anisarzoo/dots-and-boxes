@@ -682,6 +682,13 @@ class DotsAndBoxesApp {
             clearInterval(this.rematchInterval);
             this.rematchInterval = null;
         }
+        // Clear any pending rematch-triggered goHome timeout and reset the active flag
+        if (this._rematchGoHomeTimeout) {
+            clearTimeout(this._rematchGoHomeTimeout);
+            this._rematchGoHomeTimeout = null;
+        }
+        this._rematchWasActive = false;
+
         if (this.gameInstance) {
             // Cleanup rematch manager listeners if present
             if (this.gameInstance.rematchManager) {
@@ -1356,13 +1363,28 @@ class DotsAndBoxesApp {
         }
 
         const container = document.getElementById('rematchStatusContainer');
+
+        // If we now have an active rematch state, cancel any pending goHome timeout
+        if (rematchState && rematchState.active === true) {
+            if (this._rematchGoHomeTimeout) {
+                clearTimeout(this._rematchGoHomeTimeout);
+                this._rematchGoHomeTimeout = null;
+            }
+            // Mark that rematch was at some point active (so we know when it clears it was intentional)
+            this._rematchWasActive = true;
+        }
+
         if (!rematchState || rematchState.active !== true) {
             if (container) {
                 container.classList.add('hidden');
             }
 
-            if (this.gameInstance && !this.gameInstance.isLocal && this.gameInstance.gameState === 'finished') {
-                // If the game has already been updated to playing by the network update, do nothing
+            // Only go home if the rematch state was previously active (i.e., it was cancelled/declined).
+            // Do NOT go home on the initial null fire when the listener first attaches.
+            const wasActive = this._rematchWasActive === true;
+
+            if (wasActive && this.gameInstance && !this.gameInstance.isLocal && this.gameInstance.gameState === 'finished') {
+                // If the game has already transitioned to playing, do nothing
                 if (this.gameInstance.gameState === 'playing') {
                     return;
                 }
@@ -1373,7 +1395,7 @@ class DotsAndBoxesApp {
                 }
 
                 // Wait a tiny bit (200ms) to allow any atomic network updates to propagate first
-                setTimeout(() => {
+                this._rematchGoHomeTimeout = setTimeout(() => {
                     if (!this.gameInstance || this.gameInstance.gameState === 'playing') {
                         return;
                     }
@@ -1382,7 +1404,7 @@ class DotsAndBoxesApp {
                         this.uiManager.showNotification('📚 Class dismissed! Not enough players agreed to rematch.', 'error', 3000);
                     }
 
-                    setTimeout(() => {
+                    this._rematchGoHomeTimeout = setTimeout(() => {
                         this.hideAllModals();
                         this.goHome();
                     }, 3000);
