@@ -2386,3 +2386,79 @@ body.theme-greenboard .current-turn-mobile {
 .p-2 {
     padding: 1rem;
 }
+
+/* Rematch Roster Badge Styles */
+.rematch-player-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 12px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 6px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.rematch-player-info {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.rematch-player-name {
+    font-size: 1.1rem;
+    font-weight: bold;
+    color: #fff;
+    font-family: inherit;
+}
+
+.theme-whiteboard .rematch-player-name {
+    color: #333 !important;
+}
+
+.rematch-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    border: 1.5px dashed;
+    font-family: inherit;
+}
+
+/* Ready Badges (Green chalk-style) */
+.rematch-badge.badge-ready {
+    background: rgba(46, 204, 113, 0.2) !important;
+    color: #2ecc71 !important;
+    border-color: #2ecc71 !important;
+}
+.theme-whiteboard .rematch-badge.badge-ready {
+    background: rgba(39, 174, 96, 0.1) !important;
+    color: #27ae60 !important;
+    border-color: #27ae60 !important;
+}
+
+/* Thinking Badges (Grey chalk-style) */
+.rematch-badge.badge-thinking {
+    background: rgba(220, 220, 220, 0.15) !important;
+    color: #bdc3c7 !important;
+    border-color: #95a5a6 !important;
+}
+.theme-whiteboard .rematch-badge.badge-thinking {
+    background: rgba(127, 135, 143, 0.1) !important;
+    color: #7f8c8d !important;
+    border-color: #7f8c8d !important;
+}
+
+/* Left Badges (Red chalk-style) */
+.rematch-badge.badge-left {
+    background: rgba(231, 76, 60, 0.2) !important;
+    color: #e74c3c !important;
+    border-color: #e74c3c !important;
+}
+.theme-whiteboard .rematch-badge.badge-left {
+    background: rgba(192, 41, 43, 0.1) !important;
+    color: #c0392b !important;
+    border-color: #c0392b !important;
+}

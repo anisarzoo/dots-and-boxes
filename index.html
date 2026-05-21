@@ -930,6 +930,12 @@
             <div class="modal-body">
                 <p id="endGameMessage"></p>
                 <div class="final-scores" id="finalScores"></div>
+                <div id="rematchStatusContainer" class="hidden" style="margin-top: 15px; margin-bottom: 15px; padding: 15px; background: rgba(0,0,0,0.15); border-radius: 8px; border: 2px dashed var(--border-color, #fff);">
+                    <div id="rematchCountdown" style="text-align: center; font-size: 1.2rem; font-weight: bold; margin-bottom: 12px; color: var(--accent-color, #e74c3c);">
+                        ⏳ Rematch proposal: 10s remaining...
+                    </div>
+                    <div id="rematchPlayersList" style="display: flex; flex-direction: column; gap: 8px;"></div>
+                </div>
                 <div class="modal-buttons">
                     <button id="rematchBtn" class="confirm-btn">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"

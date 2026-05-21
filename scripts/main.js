@@ -12,7 +12,7 @@ import {
     signOut,
     onAuthStateChanged
 } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
-import { ref, get } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js';
+import { ref, get, onValue, off } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js';
 
 class DotsAndBoxesApp {
     _isGoingHome = false;
@@ -34,6 +34,7 @@ class DotsAndBoxesApp {
 
         this.signedInUser = null;
         this.matchHistory = this.loadMatchHistory();
+        this.serverTimeOffset = 0;
         this.init();
     }
 
@@ -143,6 +144,12 @@ class DotsAndBoxesApp {
         this.checkUrlHash();
         // Setup Google Auth UI/logic
         setTimeout(() => this.setupGoogleAuth(), 0);
+
+        // Listen for Firebase server time offset
+        const offsetRef = ref(db, '.info/serverTimeOffset');
+        onValue(offsetRef, (snapshot) => {
+            this.serverTimeOffset = snapshot.val() || 0;
+        });
     }
 
     loadSettings() {
@@ -394,6 +401,18 @@ class DotsAndBoxesApp {
                     loginModal.classList.add('hidden');
                 };
             }
+        }
+
+        // Cancel Quick Match — bind once here so it always works
+        const cancelMatchBtn = document.getElementById('cancelMatch');
+        if (cancelMatchBtn) {
+            cancelMatchBtn.onclick = () => {
+                this.playSound('click');
+                if (this.networkManager) {
+                    this.networkManager.cancelQuickMatch();
+                }
+                this.goHome();
+            };
         }
     }
 
@@ -658,6 +677,10 @@ class DotsAndBoxesApp {
                 this.networkManager.cancelQuickMatch();
             }
             this.networkManager.leaveRoom();
+        }
+        if (this.rematchInterval) {
+            clearInterval(this.rematchInterval);
+            this.rematchInterval = null;
         }
         if (this.gameInstance) {
             // Cleanup rematch manager listeners if present
@@ -948,15 +971,13 @@ class DotsAndBoxesApp {
 
         if (result) {
             if (result.matched) {
-                this.showScreen('gameScreen');
-                this.startNetworkGame();
-            } else if (result.queued) {
-                document.getElementById('cancelMatch')?.addEventListener('click', () => {
-                    this.playSound('click');
-                    this.networkManager.cancelQuickMatch();
-                    this.goHome();
-                });
+                // The host wrote status:'playing' inside waitForOpponentToJoin
+                // which triggers startNetworkGame via the status listener AND directly.
+                // Don't call startNetworkGame() here again — it will be called by waitForOpponentToJoin.
+            } else if (result.error) {
+                this.showError('Quick match failed. Please try again.');
             }
+            // If result.queued: we're waiting; cancel button is bound in bindHomeButtons
         }
     }
 
@@ -1181,13 +1202,40 @@ class DotsAndBoxesApp {
         if (rematchBtn) {
             if (this.gameInstance && !this.gameInstance.isLocal) {
                 rematchBtn.style.display = '';
+                rematchBtn.disabled = false;
+                rematchBtn.innerHTML = `
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                        stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 8px;">
+                        <path d="M21 2v6h-6"></path>
+                        <path d="M3 12a9 9 0 0 1 15-6.7L21 8"></path>
+                        <path d="M3 22v-6h6"></path>
+                        <path d="M21 12a9 9 0 0 1-15 6.7L3 16"></path>
+                    </svg>
+                    Rematch
+                `;
                 rematchBtn.onclick = () => {
                     this.playSound('click');
                     this.requestRematch();
                 };
+
+                // Initialize RematchManager and listen to rematch state
+                if (!this.gameInstance.rematchManager) {
+                    this.gameInstance.rematchManager = new RematchManager(
+                        this,
+                        this.networkManager,
+                        this.gameInstance
+                    );
+                }
+                const roomCode = this.networkManager?.currentRoom;
+                if (roomCode) {
+                    this.gameInstance.rematchManager.listenToRematchState(roomCode, (rematchState) => {
+                        this.handleRematchStateUpdate(rematchState);
+                    });
+                }
             } else if (this.gameInstance && this.gameInstance.isLocal) {
                 // Local games: always enable rematch
                 rematchBtn.style.display = '';
+                rematchBtn.disabled = false;
                 rematchBtn.onclick = () => {
                     this.playSound('click');
                     this.hideAllModals();
@@ -1200,19 +1248,19 @@ class DotsAndBoxesApp {
         if (quitBtn) {
             quitBtn.onclick = () => {
                 this.playSound('click');
-                // Always hide all modals and overlays before going home
-                this.hideAllModals();
-                setTimeout(() => {
-                    // Ensure all are hidden
-                    document.body.classList.remove('modal-open');
-                    this.showConfirmModal(
-                        'Are you sure you want to quit to home?',
-                        () => {
-                            this.hideAllModals();
-                            this.goHome();
+                this.showConfirmModal(
+                    'Are you sure you want to quit to home?',
+                    async () => {
+                        this.hideAllModals();
+                        if (this.gameInstance && !this.gameInstance.isLocal && this.gameInstance.rematchManager) {
+                            const roomCode = this.networkManager?.currentRoom;
+                            if (roomCode) {
+                                await this.gameInstance.rematchManager.voteRematch(roomCode, 'declined');
+                            }
                         }
-                    );
-                }, 100);
+                        this.goHome();
+                    }
+                );
             };
         }
 
@@ -1242,14 +1290,14 @@ class DotsAndBoxesApp {
             return;
         }
 
-        // Hide the end game modal immediately
-        this.hideAllModals();
-
         // Clean up any lingering confetti
         document.querySelectorAll('.confetti').forEach(el => el.remove());
 
         try {
             if (this.gameInstance.isLocal) {
+                // Hide the end game modal immediately for local games
+                this.hideAllModals();
+
                 // For local games, reset directly
                 this.gameInstance.rematch();
                 this.showScreen('gameScreen');
@@ -1270,47 +1318,213 @@ class DotsAndBoxesApp {
                 }
 
                 const rematchMgr = this.gameInstance.rematchManager;
+                const roomCode = this.networkManager?.currentRoom;
 
-                // Set up a listener that fires on ALL clients when rematchReady becomes true.
-                rematchMgr.setupRematchListener(async () => {
-                    // console.log('[App] rematchReady fired — all clients auto-starting rematch');
-                    // Host performs the DB reset
-                    if (this.networkManager && this.networkManager.isHost) {
-                        await rematchMgr.confirmRematch();
+                if (rematchMgr && roomCode) {
+                    // Disable rematch button
+                    const rematchBtn = document.getElementById('rematchBtn');
+                    if (rematchBtn) {
+                        rematchBtn.disabled = true;
+                        rematchBtn.innerHTML = `⏳ Waiting...`;
                     }
-                    // All clients: destroy old game instance so room listener re-creates it
-                    if (this.gameInstance) {
-                        this.gameInstance.cleanup();
-                        this.gameInstance = null;
-                    }
-                    // The room listener will detect status='playing' + gameInstance=null
-                    // and call startNetworkGame() to create a fresh game
-                });
 
-                // console.log('[App] Requesting rematch from RematchManager');
-                const requested = await rematchMgr.requestRematch();
+                    // Get current players roster
+                    const currentPlayers = this.gameInstance.players;
+                    
+                    // Initialize rematch state under /rematchState
+                    await rematchMgr.initializeRematchState(roomCode, currentPlayers);
 
-                if (requested) {
-                    // This client was the last to request — immediately confirm & reset
-                    // console.log('[App] This client triggered all-ready — confirming rematch');
-                    await rematchMgr.confirmRematch();
-                    // Destroy old game instance so the room listener creates a fresh one
-                    if (this.gameInstance) {
-                        this.gameInstance.cleanup();
-                        this.gameInstance = null;
-                    }
-                    // The room listener will call startNetworkGame()
-                } else {
-                    // Still waiting for other players — stay on current screen
-                    // console.log('[App] Waiting for other players to request rematch');
-                    if (this.uiManager) {
-                        this.uiManager.showNotification('⏳ Waiting for other classmates to rematch...', 'info', 10000);
-                    }
+                    // Vote agreed
+                    await rematchMgr.voteRematch(roomCode, 'agreed');
                 }
             }
         } catch (error) {
             // console.error('[App] Error during rematch:', error);
             this.showError('Rematch failed. Please try again.');
+            const rematchBtn = document.getElementById('rematchBtn');
+            if (rematchBtn) {
+                rematchBtn.disabled = false;
+                rematchBtn.innerHTML = `Rematch`;
+            }
+        }
+    }
+
+    handleRematchStateUpdate(rematchState) {
+        if (this.rematchInterval) {
+            clearInterval(this.rematchInterval);
+            this.rematchInterval = null;
+        }
+
+        const container = document.getElementById('rematchStatusContainer');
+        if (!rematchState || rematchState.active !== true) {
+            if (container) {
+                container.classList.add('hidden');
+            }
+
+            if (this.gameInstance && !this.gameInstance.isLocal && this.gameInstance.gameState === 'finished') {
+                // If the game has already been updated to playing by the network update, do nothing
+                if (this.gameInstance.gameState === 'playing') {
+                    return;
+                }
+
+                // If the rematch is starting (we are about to transition), do nothing
+                if (this.gameInstance.rematchManager && this.gameInstance.rematchManager.rematchReady) {
+                    return;
+                }
+
+                // Wait a tiny bit (200ms) to allow any atomic network updates to propagate first
+                setTimeout(() => {
+                    if (!this.gameInstance || this.gameInstance.gameState === 'playing') {
+                        return;
+                    }
+
+                    if (this.uiManager) {
+                        this.uiManager.showNotification('📚 Class dismissed! Not enough players agreed to rematch.', 'error', 3000);
+                    }
+
+                    setTimeout(() => {
+                        this.hideAllModals();
+                        this.goHome();
+                    }, 3000);
+                }, 200);
+            }
+            return;
+        }
+
+        if (container) {
+            container.classList.remove('hidden');
+        }
+
+        const listEl = document.getElementById('rematchPlayersList');
+        if (listEl) {
+            listEl.innerHTML = '';
+            Object.values(rematchState.players).forEach(p => {
+                const row = document.createElement('div');
+                row.className = 'rematch-player-row';
+                
+                let badgeText = 'Thinking...';
+                let badgeClass = 'badge-thinking';
+                if (p.status === 'agreed') {
+                     badgeText = 'Ready!';
+                     badgeClass = 'badge-ready';
+                } else if (p.status === 'declined') {
+                     badgeText = 'Left';
+                     badgeClass = 'badge-left';
+                }
+                
+                row.innerHTML = `
+                    <div class="rematch-player-info">
+                        <span class="rematch-player-name">${p.displayName}</span>
+                    </div>
+                    <span class="rematch-badge ${badgeClass}">${badgeText}</span>
+                `;
+                listEl.appendChild(row);
+            });
+        }
+
+        const totalPlayersCount = Object.keys(rematchState.players).length;
+        const agreedPlayers = Object.values(rematchState.players).filter(p => p.status === 'agreed');
+        const declinedPlayers = Object.values(rematchState.players).filter(p => p.status === 'declined');
+
+        const localName = this.getPlayerName();
+        const localSanitizedKey = this.networkManager ? this.networkManager.sanitizeKey(localName) : '';
+        const localVote = rematchState.players[localSanitizedKey]?.status;
+        const rematchBtn = document.getElementById('rematchBtn');
+
+        if (rematchBtn) {
+            if (localVote === 'agreed') {
+                rematchBtn.disabled = true;
+                rematchBtn.innerHTML = `🎓 Ready!`;
+            } else if (localVote === 'declined') {
+                rematchBtn.disabled = true;
+                rematchBtn.innerHTML = `❌ Left`;
+            }
+        }
+
+        const getCoordinatorKey = () => {
+            const agreedKeys = Object.entries(rematchState.players)
+                .filter(([_, p]) => p.status === 'agreed')
+                .map(([key]) => key)
+                .sort();
+            return agreedKeys[0] || null;
+        };
+        const isCoordinator = (localSanitizedKey === getCoordinatorKey());
+
+        if (totalPlayersCount === 2) {
+            const countdownEl = document.getElementById('rematchCountdown');
+            if (countdownEl) {
+                countdownEl.textContent = `⏳ Waiting for all players to agree...`;
+            }
+
+            if (agreedPlayers.length === 2) {
+                if (isCoordinator && this.gameInstance?.rematchManager) {
+                    const roomCode = this.networkManager?.currentRoom;
+                    if (roomCode) {
+                        this.gameInstance.rematchManager.resolveRematchState(roomCode, agreedPlayers);
+                    }
+                }
+            } else if (declinedPlayers.length > 0) {
+                if (this.uiManager) {
+                    this.uiManager.showNotification('📚 Class dismissed! Rematch was declined.', 'error', 3000);
+                }
+                if (isCoordinator && this.gameInstance?.rematchManager) {
+                    const roomCode = this.networkManager?.currentRoom;
+                    if (roomCode) {
+                        this.gameInstance.rematchManager.cancelRematchState(roomCode);
+                    }
+                }
+                setTimeout(() => {
+                    this.hideAllModals();
+                    this.goHome();
+                }, 3000);
+            }
+        } else {
+            if (agreedPlayers.length === totalPlayersCount) {
+                if (isCoordinator && this.gameInstance?.rematchManager) {
+                    const roomCode = this.networkManager?.currentRoom;
+                    if (roomCode) {
+                        this.gameInstance.rematchManager.resolveRematchState(roomCode, agreedPlayers);
+                    }
+                }
+                return;
+            }
+
+            const updateTimer = () => {
+                const startTime = typeof rematchState.startTime === 'number' ? rematchState.startTime : Date.now();
+                const estServerTime = Date.now() + (this.serverTimeOffset || 0);
+                const elapsed = estServerTime - startTime;
+                const secs = Math.max(0, Math.ceil((10000 - elapsed) / 1000));
+
+                const countdownEl = document.getElementById('rematchCountdown');
+                if (countdownEl) {
+                    countdownEl.textContent = `⏳ Rematch proposal: ${secs}s remaining...`;
+                }
+
+                if (secs <= 0) {
+                    if (this.rematchInterval) {
+                        clearInterval(this.rematchInterval);
+                        this.rematchInterval = null;
+                    }
+                    if (isCoordinator) {
+                        this.resolveRematchTimeout(rematchState);
+                    }
+                }
+            };
+
+            updateTimer();
+            this.rematchInterval = setInterval(updateTimer, 1000);
+        }
+    }
+
+    resolveRematchTimeout(rematchState) {
+        const agreedPlayers = Object.values(rematchState.players).filter(p => p.status === 'agreed');
+        const roomCode = this.networkManager?.currentRoom;
+        if (!roomCode || !this.gameInstance?.rematchManager) return;
+
+        if (agreedPlayers.length >= 2) {
+            this.gameInstance.rematchManager.resolveRematchState(roomCode, agreedPlayers);
+        } else {
+            this.gameInstance.rematchManager.cancelRematchState(roomCode);
         }
     }
 
@@ -1470,9 +1684,11 @@ class DotsAndBoxesApp {
     }
 
     handleQuickMatchFound() {
-        // Debug log to check if this is called
-        // console.log('[main.js] handleQuickMatchFound called');
-        // Called when quick match opponent is found
+        // Guest player: a match was found and the room is set up.
+        // Show the game screen immediately; startNetworkGame will be called
+        // by the status listener when status:'playing' is written by the host.
+        this.showScreen('gameScreen');
+        // Also attempt to start the network game now in case status is already 'playing'
         this.startNetworkGame();
     }
 

@@ -300,8 +300,13 @@ export class NetworkManager {
             // Use transaction for atomic room joining
             const roomRef = ref(this.db, `rooms/${roomCode}`);
             const result = await runTransaction(roomRef, (currentData) => {
-                if (!currentData || !currentData.players) {
-                    throw new Error('Room not found');
+                // Firebase passes null on first call — return undefined to abort/retry
+                if (currentData === null) {
+                    return undefined;
+                }
+                if (!currentData.players) {
+                    // Room exists but has no players node — treat as not found
+                    return undefined;
                 }
 
                 const currentPlayerCount = Object.keys(currentData.players).length;
@@ -369,7 +374,10 @@ export class NetworkManager {
                 }
             }
 
-            throw new Error('Failed to join room - transaction failed');
+            if (!result.committed) {
+                // Transaction aborted — room doesn't exist or has no players
+                throw new Error('Room not found. Please check the room code and try again.');
+            }
 
         } catch (error) {
             console.error('Error joining room:', error);
@@ -503,12 +511,17 @@ export class NetworkManager {
                 const roomSnap = await get(roomRef);
                 const roomData = roomSnap.exists() ? roomSnap.val() : null;
                 
-                if (roomData?.players && Object.keys(roomData.players).length === 2) {
-                    // Both players joined, start the game
+                if (roomData?.players && Object.keys(roomData.players).length >= 2) {
+                    // Both players joined — write status:playing, then trigger host game start
                     await update(roomRef, { 
                         status: 'playing', 
                         gameStartedAt: serverTimestamp() 
                     });
+                    // The status listener fires for all clients including host,
+                    // but call explicitly here so the host doesn't miss it
+                    if (typeof this.app.startNetworkGame === 'function') {
+                        this.app.startNetworkGame();
+                    }
                     return true;
                 }
                 
@@ -855,8 +868,11 @@ export class NetworkManager {
             // Schedule room cleanup
             setTimeout(async () => {
                 try {
-                    await this.safeRemove(roomRef);
-                    console.log('Room cleaned up after game end');
+                    const currentSnap = await get(roomRef);
+                    if (currentSnap.exists() && currentSnap.val().status === 'finished') {
+                        await this.safeRemove(roomRef);
+                        console.log('Room cleaned up after game end');
+                    }
                 } catch (error) {
                     console.error('Error cleaning up room:', error);
                 }

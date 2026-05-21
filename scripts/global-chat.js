@@ -28,6 +28,9 @@ class GlobalChatManager {
         this.onlineUsersListener = null;
         this.messagesListener = null;
         this.connectedListener = null;
+        this.offsetListener = null;
+        this.serverTimeOffset = 0;
+        this.heartbeatInterval = null;
         
         // DOM elements - Desktop
         this.chatContainer = document.getElementById('globalChatContainer');
@@ -252,6 +255,17 @@ class GlobalChatManager {
                 this.updatePresenceData();
             }
         });
+
+        // Listen for server time offset to get dynamic server time
+        const offsetRef = ref(db, '.info/serverTimeOffset');
+        this.offsetListener = onValue(offsetRef, (snapshot) => {
+            this.serverTimeOffset = snapshot.val() || 0;
+        });
+
+        // Start heartbeat to update lastSeen every 15s
+        this.heartbeatInterval = setInterval(() => {
+            this.updatePresenceData();
+        }, 15000);
         
         // Listen for online users changes to update the UI count
         this.setupOnlineUsersListener();
@@ -272,11 +286,16 @@ class GlobalChatManager {
             // The structure is onlineUsers/UID/sessionID or onlineUsers/guests/sessionID
             // We need to count all leaves that are session objects
             
+            const now = Date.now() + this.serverTimeOffset;
+            
             const processNode = (node) => {
                 if (typeof node !== 'object' || node === null) return;
                 
                 if (node.sessionId) {
-                    count++;
+                    const lastSeen = node.lastSeen || 0;
+                    if (now - lastSeen < 45000) {
+                        count++;
+                    }
                 } else {
                     Object.values(node).forEach(child => processNode(child));
                 }
@@ -305,6 +324,17 @@ class GlobalChatManager {
             const connectedRef = ref(db, '.info/connected');
             off(connectedRef, 'value', this.connectedListener);
             this.connectedListener = null;
+        }
+
+        if (this.offsetListener) {
+            const offsetRef = ref(db, '.info/serverTimeOffset');
+            off(offsetRef, 'value', this.offsetListener);
+            this.offsetListener = null;
+        }
+
+        if (this.heartbeatInterval) {
+            clearInterval(this.heartbeatInterval);
+            this.heartbeatInterval = null;
         }
         
         this.onlineUsersRef = null;

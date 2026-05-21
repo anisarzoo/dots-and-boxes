@@ -1123,6 +1123,32 @@ export class DotsAndBoxesGame {
         const isFreshBoard = incomingLines.length === 0 && (!gameState.boxes || gameState.boxes.length === 0);
         const isRematch = gameState.isRematch === true || (isFreshBoard && (gameState.gameState === 'playing') && prevLineCount > 0);
 
+        if (isRematch) {
+            // Check if local player was excluded
+            const localIdentity = this.networkManager?.playerData?.identity;
+            const localName = this.soundManager?.getPlayerName?.();
+            const isLocalPlayerInNewMatch = Array.isArray(gameState.players) && gameState.players.some(p => 
+                (localIdentity && p.identity === localIdentity) || 
+                (localName && p.displayName === localName)
+            );
+
+            if (!isLocalPlayerInNewMatch) {
+                if (this.soundManager) {
+                    this.soundManager.hideAllModals();
+                    if (this.soundManager.uiManager) {
+                        this.soundManager.uiManager.showNotification('🚪 You did not join the rematch.', 'info', 4000);
+                    }
+                    this.soundManager.goHome();
+                }
+                return;
+            }
+
+            // Close modal for joining players
+            if (this.soundManager && typeof this.soundManager.hideAllModals === 'function') {
+                this.soundManager.hideAllModals();
+            }
+        }
+
         // Show end game pop-up for all players when game ends (only once)
         if (gameState.gameState === 'finished' && this.gameState !== 'finished') {
             this.endGame();
