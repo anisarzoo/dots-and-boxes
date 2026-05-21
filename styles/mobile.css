@@ -324,10 +324,8 @@
 /* Game board sizing for mobile */
 @media (max-width: 1150px) {
     #mobileGameBoard {
-        width: 92vw !important;
-        height: 92vw !important;
         max-width: 92vw !important;
-        max-height: 92vw !important;
+        max-height: 82vh !important;
         display: block !important;
         margin: 0 auto !important;
         touch-action: none !important;
@@ -521,13 +519,10 @@
     }
 
     #mobileGameBoard {
-        width: 85vw !important;
-        height: 85vw !important;
-        max-width: 85vw !important;
-        max-height: 85vw !important;
+        max-width: 92vw !important;
+        max-height: 82vh !important;
         aspect-ratio: 1;
         object-fit: contain;
-        max-height: 85vh !important;
     }
 
     .current-turn-mobile {
@@ -542,12 +537,6 @@
         z-index: 15;
     }
 
-    .mobile-rule-btn {
-        font-size: 0.8rem;
-        padding: 2px 4px;
-        min-width: 24px;
-        height: 24px;
-    }
 
     .mobile-nav {
         padding: 6px 4px;
@@ -649,13 +638,4 @@
         overflow-x: hidden;
     }
 }
-
-/* Landscape board size fix */
-@media screen and (orientation: landscape) {
-    #mobileGameBoard {
-        max-width: 85vh !important;
-        max-height: 85vh !important;
-        width: 85vh !important;
-        height: 85vh !important;
-    }
-}
+

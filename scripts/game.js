@@ -123,12 +123,27 @@ export class DotsAndBoxesGame {
     }
 
     calculateCanvasSize() {
-        const idealSpacing = 40;
-        const baseSize = idealSpacing * (this.gridSize - 1) + 100;
         const isMobileView = window.innerWidth < 1150 || window.innerHeight < 500;
-        const verticalPadding = isMobileView ? 120 : 200;
-        const maxSize = Math.min(window.innerWidth - 40, window.innerHeight - verticalPadding);
-        return Math.max(280, Math.min(baseSize, maxSize));
+        const isLandscape = window.innerWidth > window.innerHeight;
+        
+        let maxSize;
+        if (isMobileView) {
+            if (isLandscape) {
+                // In landscape mobile view, height is the main constraint.
+                // Allow the board to occupy up to 82% of the screen height.
+                maxSize = Math.min(window.innerWidth - 40, window.innerHeight * 0.82);
+            } else {
+                // Portrait mobile view
+                maxSize = Math.min(window.innerWidth - 40, window.innerHeight - 120);
+            }
+        } else {
+            // Desktop view
+            maxSize = Math.min(window.innerWidth - 40, window.innerHeight - 200);
+        }
+        
+        // Cap at 600px for desktop/tablets, and allow it to be as large as maxSize (minimum 280)
+        const cap = isMobileView ? 550 : 600;
+        return Math.max(280, Math.min(cap, maxSize));
     }
 
     setupCanvas() {
