@@ -6,7 +6,7 @@ export class ChatManager {
     constructor(app) {
         this.app = app;
         this.messages = [];
-        this.isDesktop = window.innerWidth > 768;
+        this.isDesktop = window.innerWidth > 768 && window.innerHeight >= 500;
         this.clientId = Math.random().toString(36).substring(2, 9);
 
         // Thematic Emoji Categories
@@ -47,7 +47,7 @@ export class ChatManager {
 
         window.addEventListener('resize', () => {
             const wasDesktop = this.isDesktop;
-            this.isDesktop = window.innerWidth > 768;
+            this.isDesktop = window.innerWidth > 768 && window.innerHeight >= 500;
             if (wasDesktop !== this.isDesktop) {
                 this.updateLayout();
             }

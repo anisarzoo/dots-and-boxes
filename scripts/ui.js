@@ -2,7 +2,7 @@
 export class UIManager {
     constructor(app) {
         this.app = app;
-        this.isMobile = window.innerWidth < 768;
+        this.isMobile = window.innerWidth < 768 || window.innerHeight < 500;
         this.currentDrawer = null;
 
         this.init();
@@ -23,7 +23,7 @@ export class UIManager {
 
     handleResize() {
         const wasMobile = this.isMobile;
-        this.isMobile = window.innerWidth < 768;
+        this.isMobile = window.innerWidth < 768 || window.innerHeight < 500;
 
         if (wasMobile !== this.isMobile) {
             this.setupResponsiveDesign();

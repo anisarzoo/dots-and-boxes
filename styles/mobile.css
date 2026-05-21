@@ -21,7 +21,7 @@
 }
 
 /* Responsive Design Overrides */
-@media (max-width: 767px) {
+@media (max-width: 767px), (max-height: 499px) {
     .mobile-ui {
         display: flex !important;
         flex-direction: column !important;
@@ -489,7 +489,7 @@
 }
 
 /* ===== LANDSCAPE ORIENTATION HANDLING FOR MOBILE ===== */
-@media (max-width: 768px) and (orientation: landscape) {
+@media (max-width: 768px) and (orientation: landscape), (max-height: 499px) and (orientation: landscape) {
 
     html,
     body {
@@ -657,5 +657,108 @@
         max-height: 85vh !important;
         width: 85vh !important;
         height: 85vh !important;
+    }
+}
+
+/* ===== TABLET PORTRAIT & SLEEK LANDSCAPE STACKED LAYOUT ===== */
+@media (min-width: 768px) and (max-width: 1150px) {
+    .game-layout {
+        display: grid !important;
+        grid-template-columns: 1fr 280px !important;
+        grid-template-rows: auto 1fr !important;
+        grid-template-areas:
+            "board scores"
+            "board chat" !important;
+        gap: 15px !important;
+        padding: 15px !important;
+        height: calc(100vh - 80px) !important;
+        max-height: calc(100vh - 80px) !important;
+        box-sizing: border-box !important;
+        overflow: hidden !important;
+    }
+
+    .center-panel {
+        grid-area: board !important;
+        padding: 0 !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        width: 100% !important;
+        height: 100% !important;
+        box-sizing: border-box !important;
+    }
+
+    .game-board-container {
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        width: 100% !important;
+        height: 100% !important;
+        max-width: 100% !important;
+        max-height: 100% !important;
+    }
+
+    #gameBoard {
+        max-width: 100% !important;
+        max-height: 100% !important;
+        object-fit: contain !important;
+    }
+
+    .right-panel {
+        grid-area: scores !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        padding: 0 !important;
+        display: flex !important;
+        flex-direction: column !important;
+        box-sizing: border-box !important;
+    }
+
+    .left-panel {
+        grid-area: chat !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        padding: 0 !important;
+        display: flex !important;
+        flex-direction: column !important;
+        min-height: 0 !important; /* Critical for grid sizing of flex children */
+        box-sizing: border-box !important;
+    }
+
+    .scoreboard-container {
+        width: 100% !important;
+        box-sizing: border-box !important;
+        margin-bottom: 0 !important;
+        padding: 12px 15px !important;
+    }
+
+    .scoreboard-container h3 {
+        margin-bottom: 0.6rem !important;
+        font-size: 1.15rem !important;
+    }
+
+    .scoreboard-container .scores {
+        max-height: 110px !important;
+        overflow-y: auto !important;
+        padding-right: 4px !important;
+    }
+
+    .scoreboard-container .current-turn {
+        margin-top: 8px !important;
+        padding: 6px !important;
+        font-size: 0.95rem !important;
+    }
+
+    .chat-container.desktop-chat {
+        height: 100% !important;
+        min-height: 0 !important;
+        display: flex !important;
+        flex-direction: column !important;
+        box-sizing: border-box !important;
+    }
+
+    .chat-messages {
+        flex: 1 !important;
+        min-height: 0 !important;
     }
 }
