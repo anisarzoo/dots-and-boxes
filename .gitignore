@@ -6,3 +6,5 @@ node_modules/
 
 # IDE settings
 .vscode/
+
+.vercel
