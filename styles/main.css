@@ -1814,6 +1814,11 @@ body.theme-greenboard .current-turn-mobile {
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+/* Confirmation modal must always sit above all other modals */
+#confirmModal {
+    z-index: 1300;
+}
+
 .modal.hidden {
     display: none;
     opacity: 0;
