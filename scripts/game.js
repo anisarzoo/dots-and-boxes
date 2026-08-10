@@ -679,7 +679,14 @@ export class DotsAndBoxesGame {
                 color: p.color,
                 id: p.id
             }));
-            if (localPlayer) {
+            if (this.isLocal) {
+                this.soundManager.onGameEnd({
+                    ...result,
+                    winnerName: result.winner ? safeDisplayName(result.winner) : '',
+                    isDraw: result.isDraw,
+                    finalScores
+                });
+            } else if (localPlayer) {
                 if (result.isDraw) {
                     this.soundManager.onGameEnd({
                         ...result,
