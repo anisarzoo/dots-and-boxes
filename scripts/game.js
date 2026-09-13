@@ -3,8 +3,6 @@ export class DotsAndBoxesGame {
     // Legacy rematch function for local games
     // For networked games, use RematchManager instead
     rematch() {
-        // console.log('[Game] Rematch called - delegating to RematchManager for network games');
-
         // For local games, reset directly
         if (this.isLocal) {
             this.lines = new Set();
@@ -14,6 +12,10 @@ export class DotsAndBoxesGame {
             this.gameState = 'playing';
             this.animationQueue = [];
             this.isAnimating = false;
+            this.animatingLines?.clear();
+            this.hoveredLine = null;
+            this.boxAnimationState = null;
+            this._lastFinalScores = null;
 
             this.players = this.players.map(p => ({ ...p, score: 0 }));
             this.grid = this.initializeGrid();
@@ -1185,11 +1187,14 @@ export class DotsAndBoxesGame {
 
         // Handle rematch: clear visuals and reinit canvas
         if (isRematch) {
-            // console.log('[Game] Rematch detected — clearing board');
             this.dotOffsets.clear();
             this.lineSegments.clear();
             this.animationQueue = [];
             this.isAnimating = false;
+            this.animatingLines?.clear();
+            this.hoveredLine = null;
+            this.boxAnimationState = null;
+            this._lastFinalScores = null;
             this.gameState = 'playing';
             this.setupCanvas();
         }

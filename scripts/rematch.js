@@ -18,8 +18,6 @@ export class RematchManager {
         this.app = app;
         this.networkManager = networkManager;
         this.gameInstance = gameInstance;
-        this.rematchRequests = new Map();
-        this.rematchReady = false;
         this.isProcessing = false;
         this.rematchListenerRef = null;
         this.rematchListener = null;
@@ -43,14 +41,25 @@ export class RematchManager {
                     return currentState;
                 }
 
+                // Preserve any votes cast before initialization (e.g. someone clicked Quit first)
+                const existingPlayers = (currentState && currentState.players) ? currentState.players : {};
+
                 // Construct initial players list
                 const playersMap = {};
                 currentPlayers.forEach((p) => {
                     const sName = this.networkManager.sanitizeKey(p.displayName || p.name);
+                    const existingVote = existingPlayers[sName]?.status;
+                    let initialStatus = 'pending';
+                    if (sName === localPlayerKey) {
+                        initialStatus = 'agreed';
+                    } else if (existingVote === 'declined') {
+                        initialStatus = 'declined';
+                    }
+
                     playersMap[sName] = {
                         displayName: p.displayName || p.name,
                         identity: p.identity || "",
-                        status: sName === localPlayerKey ? 'agreed' : 'pending'
+                        status: initialStatus
                     };
                 });
 
@@ -100,13 +109,17 @@ export class RematchManager {
     }
 
     async resolveRematchState(roomCode, agreedPlayers) {
-        if (!this.networkManager) return false;
+        if (!this.networkManager || this.isProcessing) return false;
+        this.isProcessing = true;
         const activeDb = this._getDb();
         const roomRef = ref(activeDb, `rooms/${roomCode}`);
 
         try {
             const roomSnap = await get(roomRef);
-            if (!roomSnap.exists()) return false;
+            if (!roomSnap.exists()) {
+                this.isProcessing = false;
+                return false;
+            }
             const roomData = roomSnap.val();
 
             const gridSize = roomData.gridSize || 5;
@@ -115,13 +128,20 @@ export class RematchManager {
             const finalPlayersObj = {};
             const finalPlayersArr = [];
 
-            // We iterate over the agreed players, re-indexing their IDs starting from 1
+            // Determine host: preserve original host if still in agreedPlayers, else coordinator (first agreed) is new host
+            const originalHostIdentity = roomData.host;
+            const originalHostStillPresent = agreedPlayers.some(p => p.identity === originalHostIdentity);
+            const newHostIdentity = originalHostStillPresent ? originalHostIdentity : (agreedPlayers[0]?.identity || null);
+
+            // Iterate over agreed players, re-indexing their IDs starting from 1
             agreedPlayers.forEach((p, idx) => {
                 const sName = this.networkManager.sanitizeKey(p.displayName);
                 const originalRoomPlayer = roomData.players?.[sName] || {};
+                const isHostPlayer = p.identity === newHostIdentity || (!newHostIdentity && idx === 0);
                 
                 finalPlayersObj[sName] = {
                     ...originalRoomPlayer,
+                    isHost: isHostPlayer,
                     connected: true // Ensure they are marked connected
                 };
 
@@ -130,11 +150,16 @@ export class RematchManager {
                     displayName: p.displayName,
                     identity: p.identity || `player_${idx}`,
                     photoURL: originalRoomPlayer.photoURL || null,
-                    isHost: originalRoomPlayer.isHost || false,
+                    isHost: isHostPlayer,
                     score: 0,
                     color: originalRoomPlayer.color || this._getPlayerColor(idx + 1)
                 });
             });
+
+            // Update local host flag if this client is the new host
+            if (this.networkManager && this.networkManager.playerData) {
+                this.networkManager.isHost = (this.networkManager.playerData.identity === newHostIdentity);
+            }
 
             const freshGameState = {
                 lines: [],
@@ -144,9 +169,7 @@ export class RematchManager {
                 currentPlayer: 0,
                 gridSize,
                 gameState: 'playing',
-                isRematch: true,
-                rematchReady: false,
-                rematchRequests: {}
+                isRematch: true
             };
 
             // Atomic update to reset the room state
@@ -155,10 +178,12 @@ export class RematchManager {
                 players: finalPlayersObj,
                 gameState: freshGameState,
                 gameStartedAt: serverTimestamp(),
-                rematchState: null,
-                rematchRequests: null,
-                rematchReady: null
+                rematchState: null
             };
+
+            if (newHostIdentity) {
+                updates.host = newHostIdentity;
+            }
 
             await update(roomRef, updates);
 
@@ -177,6 +202,8 @@ export class RematchManager {
         } catch (error) {
             console.error('[Rematch] Error resolving rematch:', error);
             return false;
+        } finally {
+            this.isProcessing = false;
         }
     }
 
@@ -186,9 +213,10 @@ export class RematchManager {
         try {
             await update(roomRef, {
                 status: 'finished',
-                rematchState: null,
-                rematchRequests: null,
-                rematchReady: null
+                rematchState: {
+                    active: false,
+                    cancelled: true
+                }
             });
             return true;
         } catch (error) {
@@ -207,6 +235,10 @@ export class RematchManager {
             this.gameInstance.gameState = 'playing';
             this.gameInstance.animationQueue = [];
             this.gameInstance.isAnimating = false;
+            this.gameInstance.animatingLines?.clear();
+            this.gameInstance.hoveredLine = null;
+            this.gameInstance.boxAnimationState = null;
+            this.gameInstance._lastFinalScores = null;
 
             this.gameInstance.players = this.gameInstance.players.map(p => ({ ...p, score: 0 }));
 
@@ -214,7 +246,9 @@ export class RematchManager {
             this.gameInstance.dotOffsets.clear();
             this.gameInstance.lineSegments.clear();
 
-            this._rebindCanvasEvents();
+            if (typeof this.gameInstance.bindCanvasEvents === 'function') {
+                this.gameInstance.bindCanvasEvents();
+            }
 
             this.gameInstance.updateUI();
             this.gameInstance.draw();
@@ -222,23 +256,6 @@ export class RematchManager {
             return true;
         } catch (error) {
             return false;
-        }
-    }
-
-    _rebindCanvasEvents() {
-        if (!this.gameInstance || !this.gameInstance.canvas) return;
-
-        const oldCanvas = this.gameInstance.canvas;
-        const newCanvas = oldCanvas.cloneNode(true);
-        oldCanvas.parentNode.replaceChild(newCanvas, oldCanvas);
-
-        this.gameInstance.canvas = newCanvas;
-        this.gameInstance.ctx = newCanvas.getContext('2d');
-        this.gameInstance._boundPointerDown = null;
-        this.gameInstance._boundPointerMove = null;
-
-        if (typeof this.gameInstance.bindCanvasEvents === 'function') {
-            this.gameInstance.bindCanvasEvents();
         }
     }
 
@@ -253,8 +270,6 @@ export class RematchManager {
             this.rematchListener = null;
         }
         this.rematchListenerRef = null;
-        this.rematchRequests.clear();
-        this.rematchReady = false;
         this.isProcessing = false;
     }
 }

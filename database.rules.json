@@ -4,136 +4,24 @@
       "$roomId": {
         ".read": true,
         ".write": "auth != null",
-        "host": {
-          ".read": true,
-          ".write": "auth != null"
-        },
-        "status": {
-          ".read": true,
-          ".write": "auth != null"
-        },
-        "gridSize": {
-          ".read": true,
-          ".write": "auth != null"
-        },
-        "maxPlayers": {
-          ".read": true,
-          ".write": "auth != null"
-        },
-        "createdAt": {
-          ".read": true,
-          ".write": "auth != null"
-        },
-        "players": {
-          ".read": true,
-          ".write": "auth != null",
-          "$playerId": {
-            ".read": true,
-            ".write": "auth != null"
-          }
-        },
-        "gameState": {
-          ".read": true,
-          ".write": "auth != null",
-          "lines": {
-            ".read": true,
-            ".write": "auth != null"
-          },
-          "lineOwners": {
-            ".read": true,
-            ".write": "auth != null"
-          },
-          "boxes": {
-            ".read": true,
-            ".write": "auth != null"
-          },
-          "currentPlayer": {
-            ".read": true,
-            ".write": "auth != null"
-          },
-          "players": {
-            ".read": true,
-            ".write": "auth != null"
-          },
-          "gameState": {
-            ".read": true,
-            ".write": "auth != null"
-          },
-          "isRematch": {
-            ".read": true,
-            ".write": "auth != null"
-          }
-        },
         "chat": {
-          ".read": true,
-          ".write": "auth != null",
           "$messageId": {
-            ".read": true,
-            ".write": "auth != null"
+            ".validate": "newData.hasChildren(['player', 'message']) && newData.child('message').isString() && newData.child('message').val().length <= 500"
           }
-        },
-        "rematchRequests": {
-          ".read": true,
-          ".write": "auth != null",
-          "$playerId": {
-            ".read": true,
-            ".write": "auth != null"
-          }
-        },
-        "rematchState": {
-          ".read": true,
-          ".write": "auth != null",
-          "active": {
-            ".read": true,
-            ".write": "auth != null"
-          },
-          "startTime": {
-            ".read": true,
-            ".write": "auth != null"
-          },
-          "hostId": {
-            ".read": true,
-            ".write": "auth != null"
-          },
-          "timeout": {
-            ".read": true,
-            ".write": "auth != null"
-          },
-          "players": {
-            ".read": true,
-            ".write": "auth != null",
-            "$playerId": {
-              ".read": true,
-              ".write": "auth != null"
-            }
-          }
-        },
-        "rematchReady": {
-          ".read": true,
-          ".write": "auth != null"
-        },
-        "gameEndedAt": {
-          ".read": true,
-          ".write": "auth != null"
         }
       }
     },
     "quickMatchQueue": {
       ".read": true,
       ".write": "auth != null",
-      ".indexOn": ["timestamp", "gridSize"],
-      "$playerId": {
-        ".read": true,
-        ".write": "auth != null"
-      }
+      ".indexOn": ["joinedAt"]
     },
     "globalChatMessages": {
       ".read": true,
       ".write": "auth != null",
       ".indexOn": ["timestamp"],
       "$messageId": {
-        ".read": true,
-        ".write": "auth != null"
+        ".validate": "newData.hasChildren(['text', 'userId']) && newData.child('text').isString() && newData.child('text').val().length <= 500"
       }
     },
     "onlineUsers": {
@@ -141,14 +29,13 @@
       "guests": {
         "$sessionId": {
           ".write": "true",
-          ".validate": "newData.hasChildren(['sessionId', 'lastSeen'])"
+          ".validate": "newData.hasChildren(['sessionId', 'lastSeen']) && newData.child('sessionId').isString() && newData.child('sessionId').val().length <= 64 && newData.child('lastSeen').isNumber()"
         }
       },
       "$userId": {
         ".write": "auth != null && auth.uid == $userId",
         "$sessionId": {
-          ".write": "auth != null && auth.uid == $userId",
-          ".validate": "newData.hasChildren(['sessionId', 'lastSeen'])"
+          ".validate": "newData.hasChildren(['sessionId', 'lastSeen']) && newData.child('lastSeen').isNumber()"
         }
       }
     },
