@@ -92,11 +92,9 @@ class DotsAndBoxesApp {
             if (user) {
                 this.setSignedInUser(user);
                 updateUI(user);
-                if (window.globalChatManager) window.globalChatManager.handleAuthStateChange(this.signedInUser);
             } else {
                 this.setSignedInUser(null);
                 updateUI(null);
-                if (window.globalChatManager) window.globalChatManager.handleAuthStateChange(null);
             }
         });
 
@@ -331,10 +329,6 @@ class DotsAndBoxesApp {
         document.getElementById('viewFullHistory')?.addEventListener('click', () => {
             this.renderFullHistory();
             this.showModal('historyModal');
-        });
-
-        document.getElementById('fullscreenBtn')?.addEventListener('click', () => {
-            this.toggleFullscreen();
         });
     }
 
@@ -1166,6 +1160,10 @@ class DotsAndBoxesApp {
     }
 
     hideAllDrawers() {
+        if (this.uiManager && typeof this.uiManager.hideAllDrawers === 'function') {
+            this.uiManager.hideAllDrawers();
+            return;
+        }
         document.querySelectorAll('.mobile-drawer').forEach(drawer => {
             drawer.classList.remove('show');
             setTimeout(() => drawer.classList.add('hidden'), 300);
@@ -1219,26 +1217,6 @@ class DotsAndBoxesApp {
                 feedback.remove();
             }
         }, 1500);
-    }
-
-    onGameStart(gameData) {
-        this.showScreen('gameScreen');
-        if (!this.gameInstance) {
-            // If gameData.isLocal is true, do not pass networkManager
-            const gameConfig = {
-                ...gameData,
-                soundManager: this
-            };
-            if (gameData.isLocal) {
-                gameConfig.isLocal = true;
-                // Remove networkManager if present
-                if ('networkManager' in gameConfig) {
-                    delete gameConfig.networkManager;
-                }
-            }
-            this.gameInstance = new DotsAndBoxesGame(gameConfig);
-            this.gameInstance.initialize();
-        }
     }
 
     onGameEnd(result) {
@@ -1642,10 +1620,6 @@ class DotsAndBoxesApp {
         }
     }
 
-    onNetworkError(error) {
-        this.showError(error.message || 'Network error occurred');
-    }
-
     // Network integration methods
     getPlayerName() {
         // Always use Google displayName for online, 'Player' for local
@@ -1827,10 +1801,6 @@ class DotsAndBoxesApp {
             return this.signedInUser.displayName;
         }
         return localStorage.getItem('dotsAndBoxesName') || 'Student';
-    }
-
-    getPlayerPhoto() {
-        return this.signedInUser?.photoURL || null;
     }
 }
 

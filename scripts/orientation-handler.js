@@ -90,7 +90,6 @@ export class OrientationHandler {
 
             setTimeout(() => {
                 this.forceRefresh();
-                window.dispatchEvent(new Event('resize'));
             }, 300);
         }, 100);
     }

@@ -52,13 +52,6 @@ export class ChatManager {
                 this.updateLayout();
             }
         });
-
-        // Register with network manager
-        if (this.app.networkManager) {
-            this.app.networkManager.on('chat', (data) => {
-                this.addMessage(data);
-            });
-        }
     }
 
     gameStarted() {

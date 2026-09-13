@@ -257,17 +257,4 @@ export class RematchManager {
         this.rematchReady = false;
         this.isProcessing = false;
     }
-
-    isLocalPlayerHost() {
-        if (!this.networkManager || !this.networkManager.playerData) return false;
-        return this.networkManager.playerData.isHost === true;
-    }
-
-    getRematchStatus() {
-        return {
-            rematchReady: this.rematchReady,
-            isProcessing: this.isProcessing,
-            requestCount: this.rematchRequests.size
-        };
-    }
 }

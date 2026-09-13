@@ -15,28 +15,6 @@
     user-select: none;
 }
 
-#soundToggle.theme-btn {
-    margin-left: 0;
-}
-
-/* Sound toggle button styles */
-#soundToggle.theme-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5em;
-    margin-left: 10px;
-}
-
-#soundToggle .sound-icon {
-    font-size: 1.2em;
-}
-
-#soundToggle .sound-label {
-    font-size: 1em;
-    margin-left: 0.4em;
-    font-family: inherit;
-}
-
 .footer-privacy {
     position: fixed;
     bottom: 0;
@@ -2047,24 +2025,28 @@ body.theme-greenboard .current-turn-mobile {
 
 /* Custom Scrollbars */
 .chat-messages::-webkit-scrollbar,
-.drawer-content::-webkit-scrollbar {
+.drawer-content::-webkit-scrollbar,
+.global-chat-messages::-webkit-scrollbar {
     width: 6px;
 }
 
 .chat-messages::-webkit-scrollbar-track,
-.drawer-content::-webkit-scrollbar-track {
+.drawer-content::-webkit-scrollbar-track,
+.global-chat-messages::-webkit-scrollbar-track {
     background: #f1f1f1;
     border-radius: 3px;
 }
 
 .chat-messages::-webkit-scrollbar-thumb,
-.drawer-content::-webkit-scrollbar-thumb {
+.drawer-content::-webkit-scrollbar-thumb,
+.global-chat-messages::-webkit-scrollbar-thumb {
     background: #888;
     border-radius: 3px;
 }
 
 .chat-messages::-webkit-scrollbar-thumb:hover,
-.drawer-content::-webkit-scrollbar-thumb:hover {
+.drawer-content::-webkit-scrollbar-thumb:hover,
+.global-chat-messages::-webkit-scrollbar-thumb:hover {
     background: #555;
 }
 
@@ -2337,78 +2319,6 @@ body.theme-greenboard .current-turn-mobile {
         transform: translateY(-100vh) rotate(360deg);
         opacity: 0;
     }
-}
-
-.chalk-dust {
-    position: absolute;
-    width: 20px;
-    height: 20px;
-    background: white;
-    border-radius: 50%;
-    animation: chalk-dust 0.5s ease-out forwards;
-    pointer-events: none;
-}
-
-.confetti {
-    position: absolute;
-    width: 10px;
-    height: 10px;
-    animation: confetti 3s ease-out forwards;
-    pointer-events: none;
-}
-
-/* Custom Scrollbars */
-.chat-messages::-webkit-scrollbar,
-.drawer-content::-webkit-scrollbar,
-.global-chat-messages::-webkit-scrollbar {
-    width: 6px;
-}
-
-.chat-messages::-webkit-scrollbar-track,
-.drawer-content::-webkit-scrollbar-track,
-.global-chat-messages::-webkit-scrollbar-track {
-    background: #f1f1f1;
-    border-radius: 3px;
-}
-
-.chat-messages::-webkit-scrollbar-thumb,
-.drawer-content::-webkit-scrollbar-thumb,
-.global-chat-messages::-webkit-scrollbar-thumb {
-    background: #888;
-    border-radius: 3px;
-}
-
-/* Utility Classes */
-.hidden {
-    display: none !important;
-}
-
-.text-center {
-    text-align: center;
-}
-
-.mt-1 {
-    margin-top: 0.5rem;
-}
-
-.mt-2 {
-    margin-top: 1rem;
-}
-
-.mb-1 {
-    margin-bottom: 0.5rem;
-}
-
-.mb-2 {
-    margin-bottom: 1rem;
-}
-
-.p-1 {
-    padding: 0.5rem;
-}
-
-.p-2 {
-    padding: 1rem;
 }
 
 /* Rematch Roster Badge Styles */

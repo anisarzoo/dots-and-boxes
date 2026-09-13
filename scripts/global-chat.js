@@ -213,12 +213,6 @@ class GlobalChatManager {
         // Mobile drawer arrow key
         if (this.mobileDrawerKey) {
             this.mobileDrawerKey.addEventListener('click', () => this.showMobileDrawer());
-            var keyBtn = this.mobileDrawerKey.querySelector('button');
-            if (keyBtn) {
-                keyBtn.addEventListener('click', () => {
-                    this.showMobileDrawer();
-                });
-            }
         }
         
         // Mobile close button
@@ -564,15 +558,6 @@ class GlobalChatManager {
             this.chatContainer.style.fontFamily = 'Schoolbell, cursive';
         } else if (isWhiteboard) {
             this.chatContainer.style.fontFamily = 'Patrick Hand, cursive';
-        }
-    }
-    
-    // Cleanup method
-    destroy() {
-        this.cleanupUserPresence();
-        
-        if (this.messagesListener && this.messagesRef) {
-            off(this.messagesRef, 'child_added', this.messagesListener);
         }
     }
 }

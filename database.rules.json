@@ -62,10 +62,6 @@
           "isRematch": {
             ".read": true,
             ".write": "auth != null"
-          },
-          "reset": {
-            ".read": true,
-            ".write": "auth != null"
           }
         },
         "chat": {
@@ -127,24 +123,6 @@
       ".write": "auth != null",
       ".indexOn": ["timestamp", "gridSize"],
       "$playerId": {
-        ".read": true,
-        ".write": "auth != null"
-      }
-    },
-    "matchmakingPool": {
-      ".read": true,
-      ".write": "auth != null",
-      ".indexOn": ["timestamp", "gridSize"],
-      "$playerId": {
-        ".read": true,
-        ".write": "auth != null"
-      }
-    },
-    "globalChat": {
-      ".read": true,
-      ".write": "auth != null",
-      ".indexOn": ["timestamp"],
-      "$messageId": {
         ".read": true,
         ".write": "auth != null"
       }

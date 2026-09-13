@@ -9,8 +9,6 @@ export class NetworkManager {
     // Constants to avoid magic numbers
     static CONSTANTS = {
         ROOM_CODE_LENGTH: 4,
-        MAX_RETRIES: 3,
-        TIMEOUT_MS: 30000,
         QUEUE_CLEANUP_INTERVAL: 60000, // 1 minute
         IDENTITY_SUFFIX_LENGTH: 8,
         MAX_WAIT_ITERATIONS: 20,
@@ -797,18 +795,6 @@ export class NetworkManager {
         return players.findIndex(p => p.displayName === localName);
     }
 
-    async makeMove(moveData) {
-        try {
-            if (this.app.gameInstance?.getNetworkGameState) {
-                const fullGameState = this.app.gameInstance.getNetworkGameState();
-                await this.updateGameState(fullGameState);
-            }
-        } catch (error) {
-            console.error('Error making move:', error);
-            this.handleError('Failed to make move', error);
-        }
-    }
-
     async startGame() {
         if (!this.db || !this.currentRoom || !this.isHost) return;
 
@@ -946,14 +932,6 @@ export class NetworkManager {
         }
     }
 
-    async safeUpdate(ref, updates) {
-        try {
-            await update(ref, updates);
-        } catch (error) {
-            console.error('Error in safe update:', error);
-        }
-    }
-
     async safeRemove(ref) {
         try {
             await remove(ref);
@@ -1034,59 +1012,5 @@ export class NetworkManager {
 
     isRoomHost() {
         return this.isHost;
-    }
-
-    getRoomStatus() {
-        return {
-            room: this.currentRoom,
-            isHost: this.isHost,
-            connected: this.isConnected,
-            playerData: this.playerData
-        };
-    }
-
-    // Event system for compatibility
-    on(event, callback) {
-        if (event === 'gameStart') {
-            this.gameStartCallback = callback;
-        }
-    }
-
-    trigger(event, data) {
-        if (event === 'gameStart' && this.gameStartCallback) {
-            this.gameStartCallback(data);
-        }
-    }
-
-    // Additional utility methods for room management
-    async removePlayerFromRoom(playerName) {
-        if (!this.db || !this.currentRoom || !this.isHost) return false;
-
-        try {
-            const sanitizedName = this.sanitizeKey(playerName);
-            const playerRef = ref(this.db, `rooms/${this.currentRoom}/players/${sanitizedName}`);
-            const playerSnap = await get(playerRef);
-            
-            if (!playerSnap.exists()) return false;
-
-            // Prevent host from removing themselves
-            if (sanitizedName === this.sanitizeKey(this.playerData.displayName)) return false;
-
-            await this.safeRemove(playerRef);
-
-            // Send system message
-            const chatRef = ref(this.db, `rooms/${this.currentRoom}/chat`);
-            const msgRef = push(chatRef);
-            await this.safeSet(msgRef, {
-                player: 'System',
-                message: `${playerName} was removed from the room by the host.`,
-                timestamp: serverTimestamp()
-            });
-
-            return true;
-        } catch (error) {
-            console.error('Error removing player:', error);
-            return false;
-        }
     }
 }

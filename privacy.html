@@ -396,8 +396,13 @@
     <script>
         // Auto-detect theme from localStorage or default to greenboard
         document.addEventListener('DOMContentLoaded', function() {
-            const savedTheme = localStorage.getItem('selectedTheme') || 'greenboard';
-            document.body.classList.add(`theme-${savedTheme}`);
+            try {
+                const settings = JSON.parse(localStorage.getItem('dotsAndBoxesSettings') || '{}');
+                const theme = settings.theme || 'greenboard';
+                document.body.classList.add(`theme-${theme}`);
+            } catch {
+                document.body.classList.add('theme-greenboard');
+            }
         });
     </script>
 </body>

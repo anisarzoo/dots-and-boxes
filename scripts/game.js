@@ -73,40 +73,6 @@ export class DotsAndBoxesGame {
         this.animatingLines = new Map();
 
 
-        // Responsive: Redraw board on resize/orientation change with debounce
-        this._resizeTimeout = null;
-        this._orientationTimeout = null;
-
-        window.addEventListener('resize', () => this._handleResize());
-        window.addEventListener('orientationchange', () => this._handleOrientationChange());
-    }
-
-    _handleResize() {
-        clearTimeout(this._resizeTimeout);
-        this._resizeTimeout = setTimeout(() => {
-            if (this.gameState === 'playing') {
-                this.setupCanvas();
-                this.draw();
-            }
-        }, 150);
-    }
-
-    _handleOrientationChange() {
-        // Debounce orientation changes to prevent rapid redraws
-        if (this._orientationLockout) return;
-        this._orientationLockout = true;
-
-        clearTimeout(this._orientationTimeout);
-        this._orientationTimeout = setTimeout(() => {
-            this._orientationLockout = false;
-            if (this.gameState === 'playing') {
-                // Give device time to finish rotation
-                setTimeout(() => {
-                    this.setupCanvas();
-                    this.draw();
-                }, 300);
-            }
-        }, 100);
     }
 
     generateRoomId() {
@@ -1116,29 +1082,6 @@ export class DotsAndBoxesGame {
     }
 
     // Network multiplayer methods
-    receiveMove(moveData) {
-        // console.log('Move received from network:', moveData);
-        if (this.isLocal) return;
-
-        this.lines.add(moveData.lineKey);
-
-        if (moveData.completedBoxes && moveData.completedBoxes.length > 0) {
-            this.players[moveData.currentPlayer].score += moveData.completedBoxes.length;
-        } else {
-            this.nextTurn();
-        }
-
-        this.updateUI();
-        // Force redraw after rematch for all clients
-        setTimeout(() => {
-            this.draw();
-        }, 50);
-
-        if (this.isGameFinished()) {
-            this.endGame();
-        }
-    }
-
     handleNetworkUpdate(gameState) {
         if (!gameState || this.isLocal) return;
 
@@ -1276,21 +1219,6 @@ export class DotsAndBoxesGame {
     }
 
 
-    handleNetworkMove(moveData) {
-        if (!moveData || this.isLocal) return;
-
-        const { line, lineKey, currentPlayer } = moveData;
-
-        if (this.lines.has(lineKey) || this.animatingLines.has(lineKey)) {
-            return;
-        }
-
-        this.animateLine(line, currentPlayer, () => {
-            this.handleLineCompletion(line, currentPlayer);
-        });
-    }
-
-
     getLocalPlayerIndex() {
         if (this.isLocal) return this.currentPlayerIndex;
 
@@ -1370,8 +1298,6 @@ export class DotsAndBoxesGame {
 
     cleanup() {
         // Cancel any pending timeouts
-        clearTimeout(this._resizeTimeout);
-        clearTimeout(this._orientationTimeout);
         clearTimeout(this._markerTimeout);
 
         // Remove event listeners from canvas
@@ -1396,34 +1322,10 @@ export class DotsAndBoxesGame {
 
         // Mark game as finished
         this.gameState = 'finished';
-
-        // console.log('[DotsAndBoxesGame] Cleanup completed');
     }
 
     handleResize() {
         this.setupCanvas();
-        this.grid = this.initializeGrid();
-        this.draw();
-    }
-
-    initializeQuickMatch() {
-        // console.log('Initializing Quick Match...');
-        this.networkManager.requestQuickMatch();
-
-        this.networkManager.on('gameStart', (gameState) => {
-            // console.log('Game started:', gameState);
-            this.handleNetworkUpdate(gameState);
-        });
-    }
-
-    updatePlayers(newPlayers) {
-        // Use player objects as provided by network state; do not generate identity here
-        this.players = newPlayers.map((p, idx) => ({
-            ...p,
-            displayName: p.displayName || p.name,
-            id: p.id !== undefined ? p.id : idx + 1
-        }));
-        this.updateUI();
         this.draw();
     }
 
@@ -1444,29 +1346,4 @@ export class DotsAndBoxesGame {
             roomId: this.roomId
         };
     }
-
-    // Helper to check if a player is connected
-    isPlayerConnected(player) {
-        return player && (player.connected !== false);
-    }
 }
-
-// Handle window resize
-window.addEventListener('resize', () => {
-    if (window.dotsAndBoxesApp && window.dotsAndBoxesApp.gameInstance) {
-        window.dotsAndBoxesApp.gameInstance.handleResize();
-    }
-});
-
-// Do NOT declare NetworkManager here again!
-// Import or require it from your network.js file if needed
-
-// Example usage (assuming you import NetworkManager from network.js):
-// const networkManagerInstance = new NetworkManager();
-// const gameInstance = new DotsAndBoxesGame({
-//     players: [],
-//     gridSize: 5,
-//     isLocal: false,
-//     soundManager: soundManagerInstance,
-//     networkManager: networkManagerInstance
-// });
